@@ -31,6 +31,7 @@ h2{font-size:20px;margin:18px 0 12px}
 .details{flex:1;min-width:0}
 .details strong,.details small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .details small{color:var(--muted);margin-top:5px;font-size:12px}
+.row .details strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;white-space:normal;text-overflow:clip;word-break:break-word;line-height:1.25}
 .iconbtn{width:36px;height:40px;background:transparent;color:white;font-size:21px;flex-shrink:0}
 .liked{color:var(--green)!important}
 .empty{color:var(--muted);padding:20px 0;font-size:14px;line-height:1.6}
@@ -45,7 +46,7 @@ nav button.active{color:var(--green)}
 .nowtop{display:flex;justify-content:space-between;align-items:center}
 .nowcover{width:min(78vw,370px);aspect-ratio:1;object-fit:cover;border-radius:15px;display:block;margin:35px auto 28px;background:#1b281e;box-shadow:0 15px 45px #0008}
 .nowmeta{display:flex;align-items:center;gap:12px}
-.nowmeta .details strong{font-size:22px}
+.nowmeta .details strong{font-size:22px;white-space:normal;word-break:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.2}
 .nowmeta .details small{font-size:14px}
 .progress{width:100%;accent-color:var(--green);margin:20px 0 0}
 .times{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
@@ -66,76 +67,76 @@ dialog input{width:100%;padding:12px;border-radius:9px;border:1px solid #536355;
 </head>
 <body>
 <header>
-  <div class="brand">my<span>music</span></div>
-  <p>Your music, wherever you go.</p>
-  <input id="search" class="search" type="search" placeholder="Search songs or artists">
-  <div class="actions">
-    <button class="pill active" data-view="home">All</button>
-    <button class="pill" data-view="liked">♥ Liked</button>
-    <button class="pill" data-view="playlists">Playlists</button>
-    <button class="pill" data-view="offline">Downloads</button>
-    <button class="pill" id="driveBtn">Load Drive</button>
-    <button class="pill" id="localBtn">Import music</button>
-  </div>
+  <div class="brand">my<span>music</span></div>
+  <p>Your music, wherever you go.</p>
+  <input id="search" class="search" type="search" placeholder="Search songs or artists">
+  <div class="actions">
+    <button class="pill active" data-view="home">All</button>
+    <button class="pill" data-view="liked">♥ Liked</button>
+    <button class="pill" data-view="playlists">Playlists</button>
+    <button class="pill" data-view="offline">Downloads</button>
+    <button class="pill" id="driveBtn">Load Drive</button>
+    <button class="pill" id="localBtn">Import music</button>
+  </div>
 </header>
 
 <main id="main"></main>
 
 <div id="mini">
-  <img id="miniCover" alt="">
-  <div class="details" id="miniDetails"><strong id="miniTitle">Nothing playing</strong><small id="miniArtist"></small></div>
-  <button class="iconbtn" id="miniLike" aria-label="Like song">♡</button>
-  <button class="iconbtn" id="miniPlay" aria-label="Play or pause">▶</button>
+  <img id="miniCover" alt="">
+  <div class="details" id="miniDetails"><strong id="miniTitle">Nothing playing</strong><small id="miniArtist"></small></div>
+  <button class="iconbtn" id="miniLike" aria-label="Like song">♡</button>
+  <button class="iconbtn" id="miniPlay" aria-label="Play or pause">▶</button>
 </div>
 
 <nav>
-  <button class="active" data-view="home"><span>⌂</span>Home</button>
-  <button class="navSearch"><span>⌕</span>Search</button>
-  <button data-view="playlists"><span>▤</span>Playlists</button>
-  <button data-view="offline"><span>↓</span>Downloads</button>
+  <button class="active" data-view="home"><span>⌂</span>Home</button>
+  <button class="navSearch"><span>⌕</span>Search</button>
+  <button data-view="playlists"><span>▤</span>Playlists</button>
+  <button data-view="offline"><span>↓</span>Downloads</button>
 </nav>
 
 <div id="now">
-  <div class="nowtop">
-    <button class="iconbtn" id="closeNow">⌄</button>
-    <span style="font-size:12px;color:#b8c9bb">NOW PLAYING</span>
-    <button class="iconbtn" id="nowMore">⋯</button>
-  </div>
-  <img class="nowcover" id="nowCover" alt="Album artwork">
-  <div class="nowmeta">
-    <div class="details"><strong id="nowTitle">Choose a song</strong><small id="nowArtist"></small></div>
-    <button class="iconbtn" id="nowLike">♡</button>
-  </div>
-  <input class="progress" id="progress" type="range" min="0" max="1000" value="0">
-  <div class="times"><span id="currentTime">0:00</span><span id="duration">0:00</span></div>
-  <div class="controls">
-    <button id="shuffleBtn">🔀</button>
-    <button id="prevBtn">⏮</button>
-    <button class="play" id="bigPlay">▶</button>
-    <button id="nextBtn">⏭</button>
-    <button id="repeatBtn">↻</button>
-  </div>
-  <div class="nowextras">
-    <button id="downloadBtn">↓ Download</button>
-    <button id="queueBtn">☷ Queue</button>
-  </div>
+  <div class="nowtop">
+    <button class="iconbtn" id="closeNow">⌄</button>
+    <span style="font-size:12px;color:#b8c9bb">NOW PLAYING</span>
+    <button class="iconbtn" id="nowMore">⋯</button>
+  </div>
+  <img class="nowcover" id="nowCover" alt="Album artwork">
+  <div class="nowmeta">
+    <div class="details"><strong id="nowTitle">Choose a song</strong><small id="nowArtist"></small></div>
+    <button class="iconbtn" id="nowLike">♡</button>
+  </div>
+  <input class="progress" id="progress" type="range" min="0" max="1000" value="0">
+  <div class="times"><span id="currentTime">0:00</span><span id="duration">0:00</span></div>
+  <div class="controls">
+    <button id="shuffleBtn">🔀</button>
+    <button id="prevBtn">⏮</button>
+    <button class="play" id="bigPlay">▶</button>
+    <button id="nextBtn">⏭</button>
+    <button id="repeatBtn">↻</button>
+  </div>
+  <div class="nowextras">
+    <button id="downloadBtn">↓ Download</button>
+    <button id="queueBtn">☷ Queue</button>
+  </div>
 </div>
 
 <dialog id="playlistDialog">
-  <form id="playlistForm">
-    <h3 id="dialogTitle">Create playlist</h3>
-    <input id="playlistName" placeholder="Playlist name" maxlength="60" required>
-    <div class="dialogactions">
-      <button type="button" class="secondary" id="cancelDialog">Cancel</button>
-      <button type="submit" class="primary">Save</button>
-    </div>
-  </form>
+  <form id="playlistForm">
+    <h3 id="dialogTitle">Create playlist</h3>
+    <input id="playlistName" placeholder="Playlist name" maxlength="60" required>
+    <div class="dialogactions">
+      <button type="button" class="secondary" id="cancelDialog">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
 </dialog>
 
 <dialog id="addDialog">
-  <h3>Add to playlist</h3>
-  <div id="playlistChoices"></div>
-  <div class="dialogactions"><button class="secondary" id="closeAdd">Close</button></div>
+  <h3>Add to playlist</h3>
+  <div id="playlistChoices"></div>
+  <div class="dialogactions"><button class="secondary" id="closeAdd">Close</button></div>
 </dialog>
 
 <input type="file" id="fileInput" accept="audio/*" multiple>
@@ -174,24 +175,24 @@ function savePlaylists(){localStorage.setItem('mymusic-playlists',JSON.stringify
 function saveDownloads(){localStorage.setItem('mymusic-downloaded',JSON.stringify([...downloaded]));}
 
 function toast(message){
-  $('toast').textContent=message;
-  $('toast').style.display='block';
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>$('toast').style.display='none',2500);
+  $('toast').textContent=message;
+  $('toast').style.display='block';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>$('toast').style.display='none',2500);
 }
 
 function escapeHTML(value){
-  return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function makeId(){
-  return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+  return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 }
 
 function placeholderArt(title='Music'){
-  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><defs><linearGradient id="g"><stop stop-color="#386947"/><stop offset="1" stop-color="#101712"/></linearGradient></defs><rect width="100%" height="100%" rx="28" fill="url(#g)"/><text x="50%" y="48%" font-size="145" text-anchor="middle" fill="#d9ffe2">♫</text><text x="50%" y="80%" font-family="Arial" font-size="25" text-anchor="middle" fill="white">${String(title).replace(/[<&>]/g,'').slice(0,28)}</text></svg>`
-  );
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><defs><linearGradient id="g"><stop stop-color="#386947"/><stop offset="1" stop-color="#101712"/></linearGradient></defs><rect width="100%" height="100%" rx="28" fill="url(#g)"/><text x="50%" y="48%" font-size="145" text-anchor="middle" fill="#d9ffe2">♫</text><text x="50%" y="80%" font-family="Arial" font-size="25" text-anchor="middle" fill="white">${String(title).replace(/[<&>]/g,'').slice(0,28)}</text></svg>`
+  );
 }
 
 function art(song){return song?.artwork||placeholderArt(song?.title||'Music');}
@@ -199,422 +200,422 @@ function currentSong(){return songs.find(s=>s.id===currentId)||null;}
 function formatTime(n){return Number.isFinite(n)&&n>=0?Math.floor(n/60)+':'+String(Math.floor(n%60)).padStart(2,'0'):'0:00';}
 
 function openDB(){
-  return new Promise((resolve,reject)=>{
-    const request=indexedDB.open(DB_NAME,1);
-    request.onupgradeneeded=()=>{
-      if(!request.result.objectStoreNames.contains('audio'))request.result.createObjectStore('audio',{keyPath:'id'});
-    };
-    request.onsuccess=()=>{db=request.result;resolve(db);};
-    request.onerror=()=>reject(request.error);
-  });
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open(DB_NAME,1);
+    request.onupgradeneeded=()=>{
+      if(!request.result.objectStoreNames.contains('audio'))request.result.createObjectStore('audio',{keyPath:'id'});
+    };
+    request.onsuccess=()=>{db=request.result;resolve(db);};
+    request.onerror=()=>reject(request.error);
+  });
 }
 
 function storeAudio(mode,operation){
-  return new Promise((resolve,reject)=>{
-    if(!db){reject(new Error('Offline storage unavailable'));return;}
-    const tx=db.transaction('audio',mode);
-    const request=operation(tx.objectStore('audio'));
-    tx.oncomplete=()=>resolve(request?.result);
-    tx.onerror=()=>reject(tx.error);
-  });
+  return new Promise((resolve,reject)=>{
+    if(!db){reject(new Error('Offline storage unavailable'));return;}
+    const tx=db.transaction('audio',mode);
+    const request=operation(tx.objectStore('audio'));
+    tx.oncomplete=()=>resolve(request?.result);
+    tx.onerror=()=>reject(tx.error);
+  });
 }
 
 async function getOfflineBlob(id){
-  return new Promise((resolve,reject)=>{
-    if(!db){resolve(null);return;}
-    const tx=db.transaction('audio','readonly');
-    const request=tx.objectStore('audio').get(id);
-    request.onsuccess=()=>resolve(request.result?.blob||null);
-    request.onerror=()=>reject(request.error);
-  });
+  return new Promise((resolve,reject)=>{
+    if(!db){resolve(null);return;}
+    const tx=db.transaction('audio','readonly');
+    const request=tx.objectStore('audio').get(id);
+    request.onsuccess=()=>resolve(request.result?.blob||null);
+    request.onerror=()=>reject(request.error);
+  });
 }
 
 async function offlineUrl(song){
-  const blob=await getOfflineBlob(song.id);
-  if(!blob)return null;
-  if(objectUrls.has(song.id))return objectUrls.get(song.id);
-  const url=URL.createObjectURL(blob);
-  objectUrls.set(song.id,url);
-  return url;
+  const blob=await getOfflineBlob(song.id);
+  if(!blob)return null;
+  if(objectUrls.has(song.id))return objectUrls.get(song.id);
+  const url=URL.createObjectURL(blob);
+  objectUrls.set(song.id,url);
+  return url;
 }
 
 async function loadOfflineSongs(){
-  if(!db)return;
-  const items=await new Promise((resolve,reject)=>{
-    const tx=db.transaction('audio','readonly');
-    const req=tx.objectStore('audio').getAll();
-    req.onsuccess=()=>resolve(req.result||[]);
-    req.onerror=()=>reject(req.error);
-  });
-  items.forEach(item=>{
-    downloaded.add(item.id);
-    const existing=songs.find(s=>s.id===item.id);
-    if(existing)existing.offline=true;
-    else songs.push({...item.song,offline:true});
-  });
-  saveDownloads();
+  if(!db)return;
+  const items=await new Promise((resolve,reject)=>{
+    const tx=db.transaction('audio','readonly');
+    const req=tx.objectStore('audio').getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+  items.forEach(item=>{
+    downloaded.add(item.id);
+    const existing=songs.find(s=>s.id===item.id);
+    if(existing)existing.offline=true;
+    else songs.push({...item.song,offline:true});
+  });
+  saveDownloads();
 }
 
 function setView(view,playlistId=null){
-  currentView=view;
-  activePlaylist=view==='playlists'?playlistId:null;
-  document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
-  document.querySelectorAll('nav button').forEach(el=>{
-    if(el.dataset.view)el.classList.toggle('active',el.dataset.view===view);
-  });
-  render();
+  currentView=view;
+  activePlaylist=view==='playlists'?playlistId:null;
+  document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
+  document.querySelectorAll('nav button').forEach(el=>{
+    if(el.dataset.view)el.classList.toggle('active',el.dataset.view===view);
+  });
+  render();
 }
 
 function matches(song,q){
-  q=(q||'').trim().toLowerCase();
-  return !q||(song.title+' '+song.artist+' '+(song.album||'')).toLowerCase().includes(q);
+  q=(q||'').trim().toLowerCase();
+  return !q||(song.title+' '+song.artist+' '+(song.album||'')).toLowerCase().includes(q);
 }
 
 function getVisibleSongs(){
-  let list=songs.filter(s=>matches(s,$('search').value));
-  if(currentView==='liked')list=list.filter(s=>liked.has(s.id));
-  if(currentView==='offline')list=list.filter(s=>downloaded.has(s.id)||s.offline);
-  if(currentView==='playlists'){
-    const playlist=playlists.find(p=>p.id===activePlaylist);
-    list=playlist?playlist.songIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean).filter(s=>matches(s,$('search').value)):[];
-  }
-  return list;
+  let list=songs.filter(s=>matches(s,$('search').value));
+  if(currentView==='liked')list=list.filter(s=>liked.has(s.id));
+  if(currentView==='offline')list=list.filter(s=>downloaded.has(s.id)||s.offline);
+  if(currentView==='playlists'){
+    const playlist=playlists.find(p=>p.id===activePlaylist);
+    list=playlist?playlist.songIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean).filter(s=>matches(s,$('search').value)):[];
+  }
+  return list;
 }
 
 function songRow(song){
-  return `<div class="row">
-    <img class="cover" src="${escapeHTML(art(song))}" alt="" data-play="${song.id}">
-    <div class="details" data-play="${song.id}"><strong>${escapeHTML(song.title)}</strong><small>${escapeHTML(song.artist||'Unknown artist')}${downloaded.has(song.id)?' · Downloaded':''}</small></div>
-    <button class="iconbtn ${liked.has(song.id)?'liked':''}" data-like="${song.id}" aria-label="Like song">${liked.has(song.id)?'♥':'♡'}</button>
-    <button class="iconbtn" data-add="${song.id}" aria-label="Add to playlist">＋</button>
-    <button class="iconbtn" data-more="${song.id}" aria-label="More options">⋯</button>
-  </div>`;
+  return `<div class="row">
+    <img class="cover" src="${escapeHTML(art(song))}" alt="" title="${escapeHTML(song.title)}" data-play="${song.id}">
+    <div class="details" data-play="${song.id}" title="${escapeHTML(song.title)}"><strong>${escapeHTML(song.title)}</strong><small>${escapeHTML(song.artist||'Unknown artist')}${downloaded.has(song.id)?' · Downloaded':''}</small></div>
+    <button class="iconbtn ${liked.has(song.id)?'liked':''}" data-like="${song.id}" aria-label="Like song">${liked.has(song.id)?'♥':'♡'}</button>
+    <button class="iconbtn" data-add="${song.id}" aria-label="Add to playlist">＋</button>
+    <button class="iconbtn" data-more="${song.id}" aria-label="More options">⋯</button>
+  </div>`;
 }
 
 function render(){
-  const main=$('main');
-  if(currentView==='home'){
-    const recent=songs.slice().reverse().slice(0,12);
-    main.innerHTML=`
-      <h2>Made for you</h2>
-      <div class="cards">
-        <button class="card" data-open="liked"><div class="cover" style="display:grid;place-items:center;font-size:48px;color:#1ed760">♥</div><strong>Liked Songs</strong><small>${liked.size} songs</small></button>
-        <button class="card" data-open="playlists"><div class="cover" style="display:grid;place-items:center;font-size:48px">▤</div><strong>Your Playlists</strong><small>${playlists.length} playlists</small></button>
-        <button class="card" data-open="offline"><div class="cover" style="display:grid;place-items:center;font-size:48px">↓</div><strong>Downloads</strong><small>${downloaded.size} saved</small></button>
-      </div>
-      <h2>Recently added</h2>
-      <div>${recent.map(songRow).join('')}</div>
-      ${songs.length?'':'<p class="empty">Load your Google Drive music or import audio files to get started.</p>'}
-      <div class="actions"><button class="pill" id="homeLoadDrive">Load Google Drive</button><button class="pill" id="homeImport">Import music</button></div>`;
-  }else if(currentView==='playlists'&&!activePlaylist){
-    main.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>Your Playlists</h2><button class="primary" id="createPlaylist">＋ Create</button></div>
-    ${playlists.length?playlists.map(p=>`<div class="row"><button class="cover" style="width:58px;display:grid;place-items:center;font-size:27px" data-playlist="${p.id}">▤</button><div class="details" data-playlist="${p.id}"><strong>${escapeHTML(p.name)}</strong><small>${p.songIds.length} songs</small></div><button class="iconbtn" data-playlist="${p.id}">›</button><button class="iconbtn" data-delete="${p.id}">⋯</button></div>`).join(''):'<p class="empty">Create a playlist, then tap ＋ beside any song to add it.</p>'}`;
-  }else{
-    const list=getVisibleSongs();
-    const playlist=playlists.find(p=>p.id===activePlaylist);
-    const title=currentView==='liked'?'Liked Songs':currentView==='offline'?'Downloads':currentView==='search'?'Search':playlist?.name||'Songs';
-    main.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${escapeHTML(title)}</h2>${currentView==='playlists'&&playlist?'<button class="pill" id="renamePlaylist">Rename</button>':''}</div>
-      ${currentView==='playlists'&&playlist?'<button class="pill" id="playPlaylist">▶ Play playlist</button>':''}
-      <div>${list.map(songRow).join('')}</div>
-      ${list.length?'':'<p class="empty">'+(currentView==='offline'?'No downloaded songs yet. Play a song and tap Download.':currentView==='liked'?'Songs you like appear here.':'No songs found.')+'</p>'}`;
-  }
-  bindButtons();
-  updateMini();
+  const main=$('main');
+  if(currentView==='home'){
+    const recent=songs.slice().reverse().slice(0,12);
+    main.innerHTML=`
+      <h2>Made for you</h2>
+      <div class="cards">
+        <button class="card" data-open="liked"><div class="cover" style="display:grid;place-items:center;font-size:48px;color:#1ed760">♥</div><strong>Liked Songs</strong><small>${liked.size} songs</small></button>
+        <button class="card" data-open="playlists"><div class="cover" style="display:grid;place-items:center;font-size:48px">▤</div><strong>Your Playlists</strong><small>${playlists.length} playlists</small></button>
+        <button class="card" data-open="offline"><div class="cover" style="display:grid;place-items:center;font-size:48px">↓</div><strong>Downloads</strong><small>${downloaded.size} saved</small></button>
+      </div>
+      <h2>Recently added</h2>
+      <div>${recent.map(songRow).join('')}</div>
+      ${songs.length?'':'<p class="empty">Load your Google Drive music or import audio files to get started.</p>'}
+      <div class="actions"><button class="pill" id="homeLoadDrive">Load Google Drive</button><button class="pill" id="homeImport">Import music</button></div>`;
+  }else if(currentView==='playlists'&&!activePlaylist){
+    main.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>Your Playlists</h2><button class="primary" id="createPlaylist">＋ Create</button></div>
+    ${playlists.length?playlists.map(p=>`<div class="row"><button class="cover" style="width:58px;display:grid;place-items:center;font-size:27px" data-playlist="${p.id}">▤</button><div class="details" data-playlist="${p.id}"><strong>${escapeHTML(p.name)}</strong><small>${p.songIds.length} songs</small></div><button class="iconbtn" data-playlist="${p.id}">›</button><button class="iconbtn" data-delete="${p.id}">⋯</button></div>`).join(''):'<p class="empty">Create a playlist, then tap ＋ beside any song to add it.</p>'}`;
+  }else{
+    const list=getVisibleSongs();
+    const playlist=playlists.find(p=>p.id===activePlaylist);
+    const title=currentView==='liked'?'Liked Songs':currentView==='offline'?'Downloads':currentView==='search'?'Search':playlist?.name||'Songs';
+    main.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${escapeHTML(title)}</h2>${currentView==='playlists'&&playlist?'<button class="pill" id="renamePlaylist">Rename</button>':''}</div>
+      ${currentView==='playlists'&&playlist?'<button class="pill" id="playPlaylist">▶ Play playlist</button>':''}
+      <div>${list.map(songRow).join('')}</div>
+      ${list.length?'':'<p class="empty">'+(currentView==='offline'?'No downloaded songs yet. Play a song and tap Download.':currentView==='liked'?'Songs you like appear here.':'No songs found.')+'</p>'}`;
+  }
+  bindButtons();
+  updateMini();
 }
 
 function bindButtons(){
-  document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>setView(el.dataset.view));
-  document.querySelectorAll('[data-play]').forEach(el=>el.onclick=()=>playSong(el.dataset.play));
-  document.querySelectorAll('[data-like]').forEach(el=>el.onclick=()=>toggleLike(el.dataset.like));
-  document.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>showAddToPlaylist(el.dataset.add));
-  document.querySelectorAll('[data-more]').forEach(el=>el.onclick=()=>songOptions(el.dataset.more));
-  document.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>setView(el.dataset.open));
-  document.querySelectorAll('[data-playlist]').forEach(el=>el.onclick=()=>setView('playlists',el.dataset.playlist));
-  document.querySelectorAll('[data-delete]').forEach(el=>el.onclick=()=>deletePlaylist(el.dataset.delete));
-  $('createPlaylist')?.addEventListener('click',()=>openPlaylistDialog());
-  $('renamePlaylist')?.addEventListener('click',()=>openPlaylistDialog(activePlaylist));
-  $('homeLoadDrive')?.addEventListener('click',loadDrive);
-  $('homeImport')?.addEventListener('click',()=>$('fileInput').click());
-  $('playPlaylist')?.addEventListener('click',()=>{
-    const pl=playlists.find(p=>p.id===activePlaylist);
-    queue=pl?pl.songIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean):[];
-    queueIndex=0;
-    if(queue.length)playSong(queue[0].id);
-    else toast('This playlist is empty.');
-  });
+  document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>setView(el.dataset.view));
+  document.querySelectorAll('[data-play]').forEach(el=>el.onclick=()=>playSong(el.dataset.play));
+  document.querySelectorAll('[data-like]').forEach(el=>el.onclick=()=>toggleLike(el.dataset.like));
+  document.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>showAddToPlaylist(el.dataset.add));
+  document.querySelectorAll('[data-more]').forEach(el=>el.onclick=()=>songOptions(el.dataset.more));
+  document.querySelectorAll('[data-open]').forEach(el=>el.onclick=()=>setView(el.dataset.open));
+  document.querySelectorAll('[data-playlist]').forEach(el=>el.onclick=()=>setView('playlists',el.dataset.playlist));
+  document.querySelectorAll('[data-delete]').forEach(el=>el.onclick=()=>deletePlaylist(el.dataset.delete));
+  $('createPlaylist')?.addEventListener('click',()=>openPlaylistDialog());
+  $('renamePlaylist')?.addEventListener('click',()=>openPlaylistDialog(activePlaylist));
+  $('homeLoadDrive')?.addEventListener('click',loadDrive);
+  $('homeImport')?.addEventListener('click',()=>$('fileInput').click());
+  $('playPlaylist')?.addEventListener('click',()=>{
+    const pl=playlists.find(p=>p.id===activePlaylist);
+    queue=pl?pl.songIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean):[];
+    queueIndex=0;
+    if(queue.length)playSong(queue[0].id);
+    else toast('This playlist is empty.');
+  });
 }
 
 function toggleLike(id){
-  if(liked.has(id))liked.delete(id);else liked.add(id);
-  saveLikes();
-  render();
-  updateNow();
-  toast(liked.has(id)?'Added to Liked Songs':'Removed from Liked Songs');
+  if(liked.has(id))liked.delete(id);else liked.add(id);
+  saveLikes();
+  render();
+  updateNow();
+  toast(liked.has(id)?'Added to Liked Songs':'Removed from Liked Songs');
 }
 
 function updateMini(){
-  const song=currentSong();
-  $('mini').style.display=song?'flex':'none';
-  if(!song)return;
-  $('miniCover').src=art(song);
-  $('miniTitle').textContent=song.title;
-  $('miniArtist').textContent=song.artist||'Unknown artist';
-  $('miniLike').textContent=liked.has(song.id)?'♥':'♡';
-  $('miniLike').classList.toggle('liked',liked.has(song.id));
-  $('miniPlay').textContent=audio.paused?'▶':'Ⅱ';
+  const song=currentSong();
+  $('mini').style.display=song?'flex':'none';
+  if(!song)return;
+  $('miniCover').src=art(song);
+  $('miniTitle').textContent=song.title;
+  $('miniArtist').textContent=song.artist||'Unknown artist';
+  $('miniLike').textContent=liked.has(song.id)?'♥':'♡';
+  $('miniLike').classList.toggle('liked',liked.has(song.id));
+  $('miniPlay').textContent=audio.paused?'▶':'Ⅱ';
 }
 
 function updateNow(){
-  const song=currentSong();
-  if(!song)return;
-  $('nowCover').src=art(song);
-  $('nowTitle').textContent=song.title;
-  $('nowArtist').textContent=song.artist||'Unknown artist';
-  $('nowLike').textContent=liked.has(song.id)?'♥':'♡';
-  $('nowLike').classList.toggle('liked',liked.has(song.id));
-  $('downloadBtn').textContent=downloaded.has(song.id)?'✓ Downloaded':'↓ Download';
-  $('bigPlay').textContent=audio.paused?'▶':'Ⅱ';
-  updateMini();
+  const song=currentSong();
+  if(!song)return;
+  $('nowCover').src=art(song);
+  $('nowTitle').textContent=song.title;
+  $('nowArtist').textContent=song.artist||'Unknown artist';
+  $('nowLike').textContent=liked.has(song.id)?'♥':'♡';
+  $('nowLike').classList.toggle('liked',liked.has(song.id));
+  $('downloadBtn').textContent=downloaded.has(song.id)?'✓ Downloaded':'↓ Download';
+  $('bigPlay').textContent=audio.paused?'▶':'Ⅱ';
+  updateMini();
 }
 
 async function playSong(id){
-  const song=songs.find(s=>s.id===id);
-  if(!song)return;
-  currentId=id;
-  if(!queue.length)queue=songs.slice();
-  const index=queue.findIndex(s=>s.id===id);
-  if(index>=0)queueIndex=index;
-  try{
-    let source=song.url;
-    if(downloaded.has(id)){
-      const saved=await offlineUrl(song);
-      if(saved)source=saved;
-    }
-    if(!source){toast('No audio source found.');return;}
-    audio.src=source;
-    $('now').style.display='block';
-    updateNow();
-    await audio.play();
-    updateNow();
-  }catch(error){
-    toast('Unable to play this song. Check the file or connection.');
-    updateNow();
-  }
+  const song=songs.find(s=>s.id===id);
+  if(!song)return;
+  currentId=id;
+  if(!queue.length)queue=songs.slice();
+  const index=queue.findIndex(s=>s.id===id);
+  if(index>=0)queueIndex=index;
+  try{
+    let source=song.url;
+    if(downloaded.has(id)){
+      const saved=await offlineUrl(song);
+      if(saved)source=saved;
+    }
+    if(!source){toast('No audio source found.');return;}
+    audio.src=source;
+    $('now').style.display='block';
+    updateNow();
+    await audio.play();
+    updateNow();
+  }catch(error){
+    toast('Unable to play this song. Check the file or connection.');
+    updateNow();
+  }
 }
 
 function togglePlayback(){
-  if(!currentSong()){toast('Choose a song first.');return;}
-  if(audio.paused)audio.play().then(updateNow).catch(()=>toast('Playback failed.'));
-  else{audio.pause();updateNow();}
+  if(!currentSong()){toast('Choose a song first.');return;}
+  if(audio.paused)audio.play().then(updateNow).catch(()=>toast('Playback failed.'));
+  else{audio.pause();updateNow();}
 }
 
 function nextSong(direction=1){
-  if(!queue.length)queue=songs.slice();
-  if(!queue.length)return;
-  if(shuffle&&queue.length>1){
-    let next=queueIndex;
-    while(next===queueIndex)next=Math.floor(Math.random()*queue.length);
-    queueIndex=next;
-  }else{
-    queueIndex=(queueIndex+direction+queue.length)%queue.length;
-  }
-  playSong(queue[queueIndex].id);
+  if(!queue.length)queue=songs.slice();
+  if(!queue.length)return;
+  if(shuffle&&queue.length>1){
+    let next=queueIndex;
+    while(next===queueIndex)next=Math.floor(Math.random()*queue.length);
+    queueIndex=next;
+  }else{
+    queueIndex=(queueIndex+direction+queue.length)%queue.length;
+  }
+  playSong(queue[queueIndex].id);
 }
 
 function openPlaylistDialog(id=null){
-  playlistEditId=id;
-  $('dialogTitle').textContent=id?'Rename playlist':'Create playlist';
-  $('playlistName').value=id?(playlists.find(p=>p.id===id)?.name||''):'';
-  $('playlistDialog').showModal();
+  playlistEditId=id;
+  $('dialogTitle').textContent=id?'Rename playlist':'Create playlist';
+  $('playlistName').value=id?(playlists.find(p=>p.id===id)?.name||''):'';
+  $('playlistDialog').showModal();
 }
 
 function showAddToPlaylist(songId){
-  if(!playlists.length){
-    if(confirm('Create a playlist first?'))openPlaylistDialog();
-    return;
-  }
-  $('playlistChoices').innerHTML=playlists.map(p=>`<button class="row" style="width:100%;background:transparent;color:white;text-align:left" data-add-to="${p.id}"><span style="font-size:24px">▤</span><span class="details"><strong>${escapeHTML(p.name)}</strong><small>${p.songIds.length} songs</small></span><span>＋</span></button>`).join('');
-  $('playlistChoices').querySelectorAll('[data-add-to]').forEach(el=>el.onclick=()=>{
-    const pl=playlists.find(p=>p.id===el.dataset.addTo);
-    if(pl&&!pl.songIds.includes(songId)){
-      pl.songIds.push(songId);
-      savePlaylists();
-      toast('Added to '+pl.name);
-    }else toast('Song already in playlist');
-    $('addDialog').close();
-    render();
-  });
-  $('addDialog').showModal();
+  if(!playlists.length){
+    if(confirm('Create a playlist first?'))openPlaylistDialog();
+    return;
+  }
+  $('playlistChoices').innerHTML=playlists.map(p=>`<button class="row" style="width:100%;background:transparent;color:white;text-align:left" data-add-to="${p.id}"><span style="font-size:24px">▤</span><span class="details"><strong>${escapeHTML(p.name)}</strong><small>${p.songIds.length} songs</small></span><span>＋</span></button>`).join('');
+  $('playlistChoices').querySelectorAll('[data-add-to]').forEach(el=>el.onclick=()=>{
+    const pl=playlists.find(p=>p.id===el.dataset.addTo);
+    if(pl&&!pl.songIds.includes(songId)){
+      pl.songIds.push(songId);
+      savePlaylists();
+      toast('Added to '+pl.name);
+    }else toast('Song already in playlist');
+    $('addDialog').close();
+    render();
+  });
+  $('addDialog').showModal();
 }
 
 function deletePlaylist(id){
-  const pl=playlists.find(p=>p.id===id);
-  if(!pl||!confirm('Delete playlist "'+pl.name+'"?'))return;
-  playlists=playlists.filter(p=>p.id!==id);
-  savePlaylists();
-  activePlaylist=null;
-  render();
-  toast('Playlist deleted');
+  const pl=playlists.find(p=>p.id===id);
+  if(!pl||!confirm('Delete playlist "'+pl.name+'"?'))return;
+  playlists=playlists.filter(p=>p.id!==id);
+  savePlaylists();
+  activePlaylist=null;
+  render();
+  toast('Playlist deleted');
 }
 
 function songOptions(id){
-  const song=songs.find(s=>s.id===id);
-  if(!song)return;
-  const action=prompt('Options for '+song.title+':\n1 = Play\n2 = Download\n3 = Add to playlist\n4 = Remove download');
-  if(action==='1')playSong(id);
-  if(action==='2')downloadSong(id);
-  if(action==='3')showAddToPlaylist(id);
-  if(action==='4')removeDownload(id);
+  const song=songs.find(s=>s.id===id);
+  if(!song)return;
+  const action=prompt('Options for '+song.title+':\n1 = Play\n2 = Download\n3 = Add to playlist\n4 = Remove download');
+  if(action==='1')playSong(id);
+  if(action==='2')downloadSong(id);
+  if(action==='3')showAddToPlaylist(id);
+  if(action==='4')removeDownload(id);
 }
 
 async function downloadSong(id){
-  const song=songs.find(s=>s.id===id);
-  if(!song)return;
-  if(downloaded.has(id)){toast('Already downloaded');return;}
-  try{
-    toast('Downloading audio…');
-    let blob;
-    if(song.file instanceof File)blob=song.file;
-    else{
-      const response=await fetch(song.url);
-      if(!response.ok)throw new Error('Download failed');
-      blob=await response.blob();
-    }
-    if(!blob.size)throw new Error('Empty audio');
-    await storeAudio('readwrite',store=>store.put({
-      id,
-      song:{id:song.id,title:song.title,artist:song.artist,artwork:song.artwork,url:song.url,sourceType:song.sourceType},
-      blob
-    }));
-    downloaded.add(id);
-    song.offline=true;
-    saveDownloads();
-    render();
-    updateNow();
-    toast('Saved for offline playback');
-  }catch(error){
-    toast('Download failed. This source may block offline downloads.');
-  }
+  const song=songs.find(s=>s.id===id);
+  if(!song)return;
+  if(downloaded.has(id)){toast('Already downloaded');return;}
+  try{
+    toast('Downloading audio…');
+    let blob;
+    if(song.file instanceof File)blob=song.file;
+    else{
+      const response=await fetch(song.url);
+      if(!response.ok)throw new Error('Download failed');
+      blob=await response.blob();
+    }
+    if(!blob.size)throw new Error('Empty audio');
+    await storeAudio('readwrite',store=>store.put({
+      id,
+      song:{id:song.id,title:song.title,artist:song.artist,artwork:song.artwork,url:song.url,sourceType:song.sourceType},
+      blob
+    }));
+    downloaded.add(id);
+    song.offline=true;
+    saveDownloads();
+    render();
+    updateNow();
+    toast('Saved for offline playback');
+  }catch(error){
+    toast('Download failed. This source may block offline downloads.');
+  }
 }
 
 async function removeDownload(id){
-  try{
-    await storeAudio('readwrite',store=>store.delete(id));
-    downloaded.delete(id);
-    saveDownloads();
-    if(objectUrls.has(id)){
-      URL.revokeObjectURL(objectUrls.get(id));
-      objectUrls.delete(id);
-    }
-    const song=songs.find(s=>s.id===id);
-    if(song)song.offline=false;
-    render();
-    updateNow();
-    toast('Download removed');
-  }catch(error){toast('Could not remove download');}
+  try{
+    await storeAudio('readwrite',store=>store.delete(id));
+    downloaded.delete(id);
+    saveDownloads();
+    if(objectUrls.has(id)){
+      URL.revokeObjectURL(objectUrls.get(id));
+      objectUrls.delete(id);
+    }
+    const song=songs.find(s=>s.id===id);
+    if(song)song.offline=false;
+    render();
+    updateNow();
+    toast('Download removed');
+  }catch(error){toast('Could not remove download');}
 }
 
 async function loadDrive(){
-  if(!DRIVE_API_KEY||DRIVE_API_KEY==='PASTE_YOUR_GOOGLE_DRIVE_API_KEY_HERE'){
-    toast('Add your Google Drive API key in the HTML first.');
-    return;
-  }
-  $('driveBtn').textContent='Loading…';
-  try{
-    let token=null,files=[];
-    do{
-      const params=new URLSearchParams({
-        q:`'${DRIVE_FOLDER_ID}' in parents and trashed = false`,
-        fields:'nextPageToken,files(id,name,mimeType,thumbnailLink)',
-        pageSize:'100',
-        key:DRIVE_API_KEY
-      });
-      if(token)params.set('pageToken',token);
-      const response=await fetch('https://www.googleapis.com/drive/v3/files?'+params);
-      const data=await response.json();
-      if(!response.ok)throw new Error(data.error?.message||'Google Drive request failed');
-      files.push(...(data.files||[]));
-      token=data.nextPageToken||null;
-    }while(token);
+  if(!DRIVE_API_KEY||DRIVE_API_KEY==='PASTE_YOUR_GOOGLE_DRIVE_API_KEY_HERE'){
+    toast('Add your Google Drive API key in the HTML first.');
+    return;
+  }
+  $('driveBtn').textContent='Loading…';
+  try{
+    let token=null,files=[];
+    do{
+      const params=new URLSearchParams({
+        q:`'${DRIVE_FOLDER_ID}' in parents and trashed = false`,
+        fields:'nextPageToken,files(id,name,mimeType,thumbnailLink)',
+        pageSize:'100',
+        key:DRIVE_API_KEY
+      });
+      if(token)params.set('pageToken',token);
+      const response=await fetch('https://www.googleapis.com/drive/v3/files?'+params);
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error?.message||'Google Drive request failed');
+      files.push(...(data.files||[]));
+      token=data.nextPageToken||null;
+    }while(token);
 
-    const audioFiles=files.filter(f=>f.mimeType?.startsWith('audio/'));
-    const newSongs=audioFiles.map(file=>({
-      id:'drive_'+file.id,
-      title:file.name.replace(/\.[^.]+$/,''),
-      artist:'Google Drive',
-      url:'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(file.id)+'?alt=media&key='+encodeURIComponent(DRIVE_API_KEY),
-      artwork:file.thumbnailLink||placeholderArt(file.name),
-      sourceType:'drive',
-      driveId:file.id
-    }));
-    const existing=new Set(songs.map(s=>s.id));
-    songs.push(...newSongs.filter(s=>!existing.has(s.id)));
-    queue=songs.slice();
-    render();
-    toast('Loaded '+audioFiles.length+' audio files');
-  }catch(error){
-    toast('Drive error: '+error.message);
-  }finally{
-    $('driveBtn').textContent='Load Drive';
-  }
+    const audioFiles=files.filter(f=>f.mimeType?.startsWith('audio/'));
+    const newSongs=audioFiles.map(file=>({
+      id:'drive_'+file.id,
+      title:file.name.replace(/\.[^.]+$/,''),
+      artist:'Google Drive',
+      url:'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(file.id)+'?alt=media&key='+encodeURIComponent(DRIVE_API_KEY),
+      artwork:file.thumbnailLink||placeholderArt(file.name),
+      sourceType:'drive',
+      driveId:file.id
+    }));
+    const existing=new Set(songs.map(s=>s.id));
+    songs.push(...newSongs.filter(s=>!existing.has(s.id)));
+    queue=songs.slice();
+    render();
+    toast('Loaded '+audioFiles.length+' audio files');
+  }catch(error){
+    toast('Drive error: '+error.message);
+  }finally{
+    $('driveBtn').textContent='Load Drive';
+  }
 }
 
 function importFiles(files){
-  let count=0;
-  for(const file of files){
-    if(!file.type.startsWith('audio/'))continue;
-    const id='local_'+makeId();
-    songs.push({
-      id,
-      title:file.name.replace(/\.[^.]+$/,''),
-      artist:'On this device',
-      url:URL.createObjectURL(file),
-      file,
-      sourceType:'local',
-      artwork:placeholderArt(file.name)
-    });
-    count++;
-  }
-  queue=songs.slice();
-  render();
-  toast('Imported '+count+' audio file(s)');
+  let count=0;
+  for(const file of files){
+    if(!file.type.startsWith('audio/'))continue;
+    const id='local_'+makeId();
+    songs.push({
+      id,
+      title:file.name.replace(/\.[^.]+$/,''),
+      artist:'On this device',
+      url:URL.createObjectURL(file),
+      file,
+      sourceType:'local',
+      artwork:placeholderArt(file.name)
+    });
+    count++;
+  }
+  queue=songs.slice();
+  render();
+  toast('Imported '+count+' audio file(s)');
 }
 
 $('playlistForm').addEventListener('submit',event=>{
-  event.preventDefault();
-  const name=$('playlistName').value.trim();
-  if(!name)return;
-  const editing=playlistEditId;
-  if(editing){
-    const pl=playlists.find(p=>p.id===editing);
-    if(pl)pl.name=name;
-  }else{
-    playlists.push({id:'pl_'+makeId(),name,songIds:[]});
-  }
-  savePlaylists();
-  $('playlistDialog').close();
-  playlistEditId=null;
-  render();
-  toast(editing?'Playlist renamed':'Playlist created');
+  event.preventDefault();
+  const name=$('playlistName').value.trim();
+  if(!name)return;
+  const editing=playlistEditId;
+  if(editing){
+    const pl=playlists.find(p=>p.id===editing);
+    if(pl)pl.name=name;
+  }else{
+    playlists.push({id:'pl_'+makeId(),name,songIds:[]});
+  }
+  savePlaylists();
+  $('playlistDialog').close();
+  playlistEditId=null;
+  render();
+  toast(editing?'Playlist renamed':'Playlist created');
 });
 
 $('cancelDialog').onclick=()=>$('playlistDialog').close();
 $('closeAdd').onclick=()=>$('addDialog').close();
 $('fileInput').addEventListener('change',e=>{
-  importFiles([...e.target.files]);
-  e.target.value='';
+  importFiles([...e.target.files]);
+  e.target.value='';
 });
 $('localBtn').onclick=()=>$('fileInput').click();
 $('driveBtn').onclick=loadDrive;
 
 $('search').addEventListener('input',()=>{
-  if($('search').value.trim())setView('search');
-  else render();
+  if($('search').value.trim())setView('search');
+  else render();
 });
 
 document.querySelector('.navSearch').onclick=()=>{
-  setView('search');
-  $('search').focus();
+  setView('search');
+  $('search').focus();
 };
 
 $('miniDetails').onclick=()=>{$('now').style.display='block';updateNow();};
@@ -628,56 +629,56 @@ $('prevBtn').onclick=()=>nextSong(-1);
 $('nextBtn').onclick=()=>nextSong(1);
 
 $('shuffleBtn').onclick=()=>{
-  shuffle=!shuffle;
-  $('shuffleBtn').classList.toggle('liked',shuffle);
-  toast(shuffle?'Shuffle on':'Shuffle off');
+  shuffle=!shuffle;
+  $('shuffleBtn').classList.toggle('liked',shuffle);
+  toast(shuffle?'Shuffle on':'Shuffle off');
 };
 
 $('repeatBtn').onclick=()=>{
-  repeat=!repeat;
-  audio.loop=repeat;
-  $('repeatBtn').classList.toggle('liked',repeat);
-  toast(repeat?'Repeat one on':'Repeat off');
+  repeat=!repeat;
+  audio.loop=repeat;
+  $('repeatBtn').classList.toggle('liked',repeat);
+  toast(repeat?'Repeat one on':'Repeat off');
 };
 
 $('downloadBtn').onclick=()=>currentId&&downloadSong(currentId);
 $('nowMore').onclick=()=>currentId&&songOptions(currentId);
 
 $('queueBtn').onclick=()=>{
-  const upcoming=queue.slice(Math.max(0,queueIndex));
-  alert('Queue\n\n'+(upcoming.map((s,i)=>(i+1)+'. '+s.title).join('\n')||'No songs in queue'));
+  const upcoming=queue.slice(Math.max(0,queueIndex));
+  alert('Queue\n\n'+(upcoming.map((s,i)=>(i+1)+'. '+s.title).join('\n')||'No songs in queue'));
 };
 
 $('progress').addEventListener('input',()=>{
-  if(Number.isFinite(audio.duration)&&audio.duration>0){
-    audio.currentTime=(Number($('progress').value)/1000)*audio.duration;
-  }
+  if(Number.isFinite(audio.duration)&&audio.duration>0){
+    audio.currentTime=(Number($('progress').value)/1000)*audio.duration;
+  }
 });
 
 audio.addEventListener('timeupdate',()=>{
-  if(Number.isFinite(audio.duration)&&audio.duration>0){
-    $('progress').value=Math.round(audio.currentTime/audio.duration*1000);
-  }
-  $('currentTime').textContent=formatTime(audio.currentTime);
-  $('duration').textContent=formatTime(audio.duration);
+  if(Number.isFinite(audio.duration)&&audio.duration>0){
+    $('progress').value=Math.round(audio.currentTime/audio.duration*1000);
+  }
+  $('currentTime').textContent=formatTime(audio.currentTime);
+  $('duration').textContent=formatTime(audio.duration);
 });
 audio.addEventListener('loadedmetadata',()=>{$('duration').textContent=formatTime(audio.duration);});
 audio.addEventListener('play',updateNow);
 audio.addEventListener('pause',updateNow);
 audio.addEventListener('ended',()=>{if(!repeat)nextSong(1);});
 audio.addEventListener('error',()=>{
-  if(currentSong())toast('Unable to play audio. Check internet or file access.');
+  if(currentSong())toast('Unable to play audio. Check internet or file access.');
 });
 
 (async()=>{
-  try{
-    await openDB();
-    await loadOfflineSongs();
-  }catch(error){
-    console.warn('Offline storage unavailable',error);
-  }
-  queue=songs.slice();
-  render();
+  try{
+    await openDB();
+    await loadOfflineSongs();
+  }catch(error){
+    console.warn('Offline storage unavailable',error);
+  }
+  queue=songs.slice();
+  render();
 })();
 </script>
 </body>
