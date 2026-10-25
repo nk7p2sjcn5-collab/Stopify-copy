@@ -14,6 +14,8 @@ button{border:0;cursor:pointer}
 header{padding:22px 18px 12px;position:sticky;top:0;background:#101712f2;backdrop-filter:blur(16px);z-index:5}
 .brand{font-size:24px;font-weight:800;letter-spacing:-.7px}
 .brand span{color:var(--green)}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.avatar{width:38px;height:38px;border-radius:50%;color:#07130a;font-weight:800;font-size:16px;display:grid;place-items:center;flex-shrink:0}
 header p{color:var(--muted);font-size:13px;margin:5px 0 15px}
 .search{width:100%;padding:13px 15px;border-radius:12px;background:#263128;border:1px solid #364238;color:white;outline:none}
 .actions{display:flex;gap:9px;overflow:auto;padding:14px 0 4px}
@@ -67,7 +69,10 @@ dialog input{width:100%;padding:12px;border-radius:9px;border:1px solid #536355;
 </head>
 <body>
 <header>
-  <div class="brand">Music <span>By Prashes</span></div>
+  <div class="toprow">
+    <div class="brand">Music <span>By Prashes</span></div>
+    <button class="avatar" id="userBtn" aria-label="Switch user" title="Switch user">P</button>
+  </div>
   <p>Your music, wherever you go.</p>
   <input id="search" class="search" type="search" placeholder="Search songs or artists">
   <div class="actions">
@@ -139,6 +144,26 @@ dialog input{width:100%;padding:12px;border-radius:9px;border:1px solid #536355;
   <div class="dialogactions"><button class="secondary" id="closeAdd">Close</button></div>
 </dialog>
 
+<dialog id="userDialog">
+  <h3>Who's listening?</h3>
+  <div id="userList"></div>
+  <div class="dialogactions">
+    <button class="secondary" id="closeUser">Close</button>
+    <button class="primary" id="addUserBtn">＋ Add user</button>
+  </div>
+</dialog>
+
+<dialog id="userCreateDialog">
+  <form id="userCreateForm">
+    <h3>Add user</h3>
+    <input id="userName" placeholder="User name" maxlength="30" required>
+    <div class="dialogactions">
+      <button type="button" class="secondary" id="cancelUserCreate">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <input type="file" id="fileInput" accept="audio/*" multiple>
 <audio id="audio" preload="metadata" playsinline></audio>
 <div id="toast"></div>
@@ -166,13 +191,40 @@ let db = null;
 let toastTimer;
 const objectUrls = new Map();
 
-let liked = new Set(JSON.parse(localStorage.getItem('mymusic-liked') || '[]'));
-let playlists = JSON.parse(localStorage.getItem('mymusic-playlists') || '[]');
-let downloaded = new Set(JSON.parse(localStorage.getItem('mymusic-downloaded') || '[]'));
+let users = JSON.parse(localStorage.getItem('mymusic-users') || '[]');
+let currentUserId = localStorage.getItem('mymusic-current-user');
+let liked = new Set();
+let playlists = [];
+let downloaded = new Set();
 
-function saveLikes(){localStorage.setItem('mymusic-liked',JSON.stringify([...liked]));}
-function savePlaylists(){localStorage.setItem('mymusic-playlists',JSON.stringify(playlists));}
-function saveDownloads(){localStorage.setItem('mymusic-downloaded',JSON.stringify([...downloaded]));}
+const AVATAR_COLORS=['#1ed760','#ffb32b','#4fc3f7','#ef6eae','#b39ddb','#ff8a65','#4db6ac','#aed581'];
+function userKey(base,id){return base+'-'+id;}
+function avatarColor(name){let h=0;for(const c of String(name))h=(h*31+c.charCodeAt(0))>>>0;return AVATAR_COLORS[h%AVATAR_COLORS.length];}
+
+function saveLikes(){localStorage.setItem(userKey('mymusic-liked',currentUserId),JSON.stringify([...liked]));}
+function savePlaylists(){localStorage.setItem(userKey('mymusic-playlists',currentUserId),JSON.stringify(playlists));}
+function saveDownloads(){localStorage.setItem(userKey('mymusic-downloaded',currentUserId),JSON.stringify([...downloaded]));}
+
+function initUsers(){
+  if(!users.length){
+    const u={id:'u_'+makeId(),name:'Prashes',createdAt:Date.now()};
+    users.push(u);
+    localStorage.setItem('mymusic-users',JSON.stringify(users));
+    localStorage.setItem(userKey('mymusic-liked',u.id),localStorage.getItem('mymusic-liked')||'[]');
+    localStorage.setItem(userKey('mymusic-playlists',u.id),localStorage.getItem('mymusic-playlists')||'[]');
+    localStorage.setItem(userKey('mymusic-downloaded',u.id),localStorage.getItem('mymusic-downloaded')||'[]');
+  }
+  if(!currentUserId||!users.some(u=>u.id===currentUserId)){
+    currentUserId=users[0].id;
+    localStorage.setItem('mymusic-current-user',currentUserId);
+  }
+}
+
+function loadUserData(){
+  liked=new Set(JSON.parse(localStorage.getItem(userKey('mymusic-liked',currentUserId))||'[]'));
+  playlists=JSON.parse(localStorage.getItem(userKey('mymusic-playlists',currentUserId))||'[]');
+  downloaded=new Set(JSON.parse(localStorage.getItem(userKey('mymusic-downloaded',currentUserId))||'[]'));
+}
 
 function toast(message){
   $('toast').textContent=message;
@@ -458,6 +510,58 @@ function deletePlaylist(id){
   toast('Playlist deleted');
 }
 
+function updateUserBtn(){
+  const u=users.find(x=>x.id===currentUserId);
+  const name=u?u.name:'?';
+  const initial=[...name][0]||'?';
+  $('userBtn').textContent=String(initial).toUpperCase();
+  $('userBtn').style.background=avatarColor(name);
+}
+
+function renderUserDialog(){
+  $('userList').innerHTML=users.map(u=>`
+    <div class="row">
+      <span class="avatar" style="background:${avatarColor(u.name)};cursor:pointer" data-user="${u.id}">${escapeHTML(([...u.name][0]||'?').toUpperCase())}</span>
+      <div class="details" style="cursor:pointer" data-user="${u.id}"><strong>${escapeHTML(u.name)}${u.id===currentUserId?' ✓':''}</strong><small>${u.id===currentUserId?'Active now':'Tap to switch'}</small></div>
+      ${users.length>1?`<button class="iconbtn" data-deluser="${u.id}" aria-label="Delete user">🗑</button>`:''}
+    </div>`).join('');
+  document.querySelectorAll('[data-user]').forEach(el=>el.onclick=()=>switchUser(el.dataset.user));
+  document.querySelectorAll('[data-deluser]').forEach(el=>el.onclick=()=>deleteUser(el.dataset.deluser));
+}
+
+function switchUser(id){
+  if(!users.some(u=>u.id===id))return;
+  if(id===currentUserId){$('userDialog').close();return;}
+  currentUserId=id;
+  localStorage.setItem('mymusic-current-user',currentUserId);
+  loadUserData();
+  activePlaylist=null;
+  $('userDialog').close();
+  updateUserBtn();
+  render();
+  updateNow();
+  const u=users.find(x=>x.id===id);
+  toast('Switched to '+u.name);
+}
+
+function deleteUser(id){
+  const u=users.find(x=>x.id===id);
+  if(!u||!confirm('Delete user "'+u.name+'" with their likes, playlists and downloads?'))return;
+  users=users.filter(x=>x.id!==id);
+  localStorage.setItem('mymusic-users',JSON.stringify(users));
+  [userKey('mymusic-liked',id),userKey('mymusic-playlists',id),userKey('mymusic-downloaded',id)].forEach(k=>localStorage.removeItem(k));
+  if(id===currentUserId&&users.length){
+    currentUserId=users[0].id;
+    localStorage.setItem('mymusic-current-user',currentUserId);
+    loadUserData();
+  }
+  renderUserDialog();
+  updateUserBtn();
+  render();
+  updateNow();
+  toast('User deleted');
+}
+
 function songOptions(id){
   const song=songs.find(s=>s.id===id);
   if(!song)return;
@@ -608,6 +712,26 @@ $('fileInput').addEventListener('change',e=>{
 $('localBtn').onclick=()=>$('fileInput').click();
 $('driveBtn').onclick=loadDrive;
 
+$('userBtn').onclick=()=>{renderUserDialog();$('userDialog').showModal();};
+$('closeUser').onclick=()=>$('userDialog').close();
+$('addUserBtn').onclick=()=>$('userCreateDialog').showModal();
+$('cancelUserCreate').onclick=()=>$('userCreateDialog').close();
+$('userCreateForm').addEventListener('submit',event=>{
+  event.preventDefault();
+  const name=$('userName').value.trim();
+  if(!name)return;
+  const u={id:'u_'+makeId(),name,createdAt:Date.now()};
+  users.push(u);
+  localStorage.setItem('mymusic-users',JSON.stringify(users));
+  localStorage.setItem(userKey('mymusic-liked',u.id),'[]');
+  localStorage.setItem(userKey('mymusic-playlists',u.id),'[]');
+  localStorage.setItem(userKey('mymusic-downloaded',u.id),'[]');
+  $('userCreateDialog').close();
+  $('userName').value='';
+  $('userDialog').close();
+  switchUser(u.id);
+});
+
 $('search').addEventListener('input',()=>{
   if($('search').value.trim())setView('search');
   else render();
@@ -671,6 +795,8 @@ audio.addEventListener('error',()=>{
 });
 
 (async()=>{
+  initUsers();
+  loadUserData();
   try{
     await openDB();
     await loadOfflineSongs();
@@ -679,6 +805,7 @@ audio.addEventListener('error',()=>{
   }
   queue=songs.slice();
   render();
+  updateUserBtn();
 })();
 </script>
 </body>
