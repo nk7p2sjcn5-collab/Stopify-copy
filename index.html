@@ -295,7 +295,7 @@ function songRow(song){
 function render(){
   const main=$('main');
   if(currentView==='home'){
-    const recent=songs.slice().reverse().slice(0,12);
+    const allSongs=songs.slice().reverse();
     main.innerHTML=`
       <h2>Made for you</h2>
       <div class="cards">
@@ -303,8 +303,8 @@ function render(){
         <button class="card" data-open="playlists"><div class="cover" style="display:grid;place-items:center;font-size:48px">▤</div><strong>Your Playlists</strong><small>${playlists.length} playlists</small></button>
         <button class="card" data-open="offline"><div class="cover" style="display:grid;place-items:center;font-size:48px">↓</div><strong>Downloads</strong><small>${downloaded.size} saved</small></button>
       </div>
-      <h2>Recently added</h2>
-      <div>${recent.map(songRow).join('')}</div>
+      <h2>All songs <span style="color:var(--muted);font-size:14px;font-weight:600">· ${allSongs.length}</span></h2>
+      <div>${allSongs.map(songRow).join('')}</div>
       ${songs.length?'':'<p class="empty">Load your Google Drive music or import audio files to get started.</p>'}
       <div class="actions"><button class="pill" id="homeLoadDrive">Load Google Drive</button><button class="pill" id="homeImport">Import music</button></div>`;
   }else if(currentView==='playlists'&&!activePlaylist){
