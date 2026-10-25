@@ -323,6 +323,7 @@ function render(){
 }
 
 function bindButtons(){
+  document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>setView(el.dataset.view));
   document.querySelectorAll('[data-play]').forEach(el=>el.onclick=()=>playSong(el.dataset.play));
   document.querySelectorAll('[data-like]').forEach(el=>el.onclick=()=>toggleLike(el.dataset.like));
   document.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>showAddToPlaylist(el.dataset.add));
