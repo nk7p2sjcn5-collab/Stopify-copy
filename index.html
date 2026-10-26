@@ -53,7 +53,8 @@ nav button.active{color:var(--accent)}
 .progress{width:100%;accent-color:var(--accent);margin:20px 0 0}
 .times{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
 .controls{display:flex;justify-content:space-around;align-items:center;margin:20px 0}
-.controls button{background:transparent;color:white;font-size:28px}
+.controls button{background:transparent;color:white;font-size:28px;display:grid;place-items:center}
+.controls button svg{display:block}
 .controls .play{background:var(--accent);color:#13070e;border-radius:50%;width:65px;height:65px;font-size:27px}
 .nowextras{display:flex;justify-content:space-around}
 .nowextras button{background:transparent;color:var(--muted);padding:10px}
@@ -116,11 +117,11 @@ dialog input{width:100%;padding:12px;border-radius:9px;border:1px solid #63535e;
   <input class="progress" id="progress" type="range" min="0" max="1000" value="0">
   <div class="times"><span id="currentTime">0:00</span><span id="duration">0:00</span></div>
   <div class="controls">
-    <button id="shuffleBtn">🔀</button>
-    <button id="prevBtn">⏮</button>
+    <button id="shuffleBtn" aria-label="Shuffle"><svg viewBox="0 0 24 24" width="25" height="25" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
+    <button id="prevBtn" aria-label="Previous"><svg viewBox="0 0 24 24" width="33" height="33" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
     <button class="play" id="bigPlay">▶</button>
-    <button id="nextBtn">⏭</button>
-    <button id="repeatBtn">↻</button>
+    <button id="nextBtn" aria-label="Next"><svg viewBox="0 0 24 24" width="33" height="33" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+    <button id="repeatBtn" aria-label="Repeat"><svg viewBox="0 0 24 24" width="25" height="25" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
   </div>
   <div class="nowextras">
     <button id="downloadBtn">↓ Download</button>
@@ -249,7 +250,7 @@ function placeholderArt(title='Music'){
   );
 }
 
-function art(song){return song?.artwork||placeholderArt(song?.title||'Music');}
+function art(song){const a=song?.artwork;return (a&&/^https?:/i.test(a))?a:placeholderArt(song?.title||'Music');}
 function currentSong(){return songs.find(s=>s.id===currentId)||null;}
 function formatTime(n){return Number.isFinite(n)&&n>=0?Math.floor(n/60)+':'+String(Math.floor(n%60)).padStart(2,'0'):'0:00';}
 
