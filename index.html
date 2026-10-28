@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#171014">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Music By Prashes">
 <title>Music By Prashes</title>
 <style>
 :root{color-scheme:dark;--bg:#171014;--panel:#261b21;--accent:#ff2ea6;--muted:#b3a7af}
@@ -564,7 +567,6 @@ async function playSong(id){
     }
     if(!source){toast('No audio source found.');return;}
     audio.src=source;
-    $('now').style.display='block';
     updateNow();
     await audio.play();
     updateNow();
@@ -809,7 +811,7 @@ function importFiles(files){
   toast('Imported '+count+' audio file(s)');
 }
 
-$('playlistForm').addEventListener('submit',event=>{
+ $('playlistForm').addEventListener('submit',event=>{
   event.preventDefault();
   const name=$('playlistName').value.trim();
   if(!name)return;
@@ -827,20 +829,20 @@ $('playlistForm').addEventListener('submit',event=>{
   toast(editing?'Playlist renamed':'Playlist created');
 });
 
-$('cancelDialog').onclick=()=>$('playlistDialog').close();
-$('closeAdd').onclick=()=>$('addDialog').close();
-$('fileInput').addEventListener('change',e=>{
+ $('cancelDialog').onclick=()=>$('playlistDialog').close();
+ $('closeAdd').onclick=()=>$('addDialog').close();
+ $('fileInput').addEventListener('change',e=>{
   importFiles([...e.target.files]);
   e.target.value='';
 });
-$('localBtn').onclick=()=>$('fileInput').click();
-$('driveBtn').onclick=loadDrive;
+ $('localBtn').onclick=()=>$('fileInput').click();
+ $('driveBtn').onclick=loadDrive;
 
-$('userBtn').onclick=()=>{renderUserDialog();$('userDialog').showModal();};
-$('closeUser').onclick=()=>$('userDialog').close();
-$('addUserBtn').onclick=()=>$('userCreateDialog').showModal();
-$('cancelUserCreate').onclick=()=>$('userCreateDialog').close();
-$('userCreateForm').addEventListener('submit',event=>{
+ $('userBtn').onclick=()=>{renderUserDialog();$('userDialog').showModal();};
+ $('closeUser').onclick=()=>$('userDialog').close();
+ $('addUserBtn').onclick=()=>$('userCreateDialog').showModal();
+ $('cancelUserCreate').onclick=()=>$('userCreateDialog').close();
+ $('userCreateForm').addEventListener('submit',event=>{
   event.preventDefault();
   const name=$('userName').value.trim();
   if(!name)return;
@@ -856,7 +858,7 @@ $('userCreateForm').addEventListener('submit',event=>{
   switchUser(u.id);
 });
 
-$('search').addEventListener('input',()=>{
+ $('search').addEventListener('input',()=>{
   if($('search').value.trim())setView('search');
   else render();
 });
@@ -866,38 +868,38 @@ document.querySelector('.navSearch').onclick=()=>{
   $('search').focus();
 };
 
-$('miniDetails').onclick=()=>{$('now').style.display='block';updateNow();};
-$('miniCover').onclick=()=>{$('now').style.display='block';updateNow();};
-$('miniLike').onclick=()=>{if(currentId)toggleLike(currentId);};
-$('miniPlay').onclick=togglePlayback;
-$('closeNow').onclick=()=>$('now').style.display='none';
-$('nowLike').onclick=()=>{if(currentId)toggleLike(currentId);};
-$('bigPlay').onclick=togglePlayback;
-$('prevBtn').onclick=()=>nextSong(-1);
-$('nextBtn').onclick=()=>nextSong(1);
+ $('miniDetails').onclick=()=>{$('now').style.display='block';updateNow();};
+ $('miniCover').onclick=()=>{$('now').style.display='block';updateNow();};
+ $('miniLike').onclick=()=>{if(currentId)toggleLike(currentId);};
+ $('miniPlay').onclick=togglePlayback;
+ $('closeNow').onclick=()=>$('now').style.display='none';
+ $('nowLike').onclick=()=>{if(currentId)toggleLike(currentId);};
+ $('bigPlay').onclick=togglePlayback;
+ $('prevBtn').onclick=()=>nextSong(-1);
+ $('nextBtn').onclick=()=>nextSong(1);
 
-$('shuffleBtn').onclick=()=>{
+ $('shuffleBtn').onclick=()=>{
   shuffle=!shuffle;
   $('shuffleBtn').classList.toggle('liked',shuffle);
   toast(shuffle?'Shuffle on':'Shuffle off');
 };
 
-$('repeatBtn').onclick=()=>{
+ $('repeatBtn').onclick=()=>{
   repeat=!repeat;
   audio.loop=repeat;
   $('repeatBtn').classList.toggle('liked',repeat);
   toast(repeat?'Repeat one on':'Repeat off');
 };
 
-$('downloadBtn').onclick=()=>currentId&&downloadSong(currentId);
-$('nowMore').onclick=()=>currentId&&songOptions(currentId);
+ $('downloadBtn').onclick=()=>currentId&&downloadSong(currentId);
+ $('nowMore').onclick=()=>currentId&&songOptions(currentId);
 
-$('queueBtn').onclick=()=>{
+ $('queueBtn').onclick=()=>{
   const upcoming=queue.slice(Math.max(0,queueIndex));
   alert('Queue\n\n'+(upcoming.map((s,i)=>(i+1)+'. '+s.title).join('\n')||'No songs in queue'));
 };
 
-$('progress').addEventListener('input',()=>{
+ $('progress').addEventListener('input',()=>{
   if(Number.isFinite(audio.duration)&&audio.duration>0){
     audio.currentTime=(Number($('progress').value)/1000)*audio.duration;
   }
@@ -924,8 +926,6 @@ function setupMediaSession(){
   try{navigator.mediaSession.setActionHandler('pause',()=>audio.pause());}catch(e){}
   try{navigator.mediaSession.setActionHandler('previoustrack',()=>nextSong(-1));}catch(e){}
   try{navigator.mediaSession.setActionHandler('nexttrack',()=>nextSong(1));}catch(e){}
-  try{navigator.mediaSession.setActionHandler('seekbackward',()=>{audio.currentTime=Math.max(0,audio.currentTime-10);});}catch(e){}
-  try{navigator.mediaSession.setActionHandler('seekforward',()=>{audio.currentTime+=10;});}catch(e){}
   try{navigator.mediaSession.setActionHandler('seekto',d=>{if(d&&d.seekTime!=null&&Number.isFinite(d.seekTime))audio.currentTime=d.seekTime;});}catch(e){}
   try{navigator.mediaSession.setActionHandler('stop',()=>audio.pause());}catch(e){}
 }
