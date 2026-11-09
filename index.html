@@ -68,6 +68,14 @@ dialog input{width:100%;padding:12px;border-radius:9px;border:1px solid #63535e;
 .primary{background:var(--accent);color:#13070e;padding:10px 15px;border-radius:22px;font-weight:700}
 .secondary{background:#473a42;color:white;padding:10px 15px;border-radius:22px}
 #toast{position:fixed;bottom:145px;left:50%;transform:translateX(-50%);background:#f7e8f2;color:#201018;padding:10px 16px;border-radius:25px;font-size:13px;z-index:50;display:none;max-width:90%;text-align:center}
+.roomcode{font-size:42px;font-weight:800;letter-spacing:8px;color:var(--accent);text-align:center;margin:14px 0;padding:20px 10px;background:#241820;border-radius:14px;border:1px dashed #5b3c4e}
+.sharegrid{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.sharebig{background:var(--panel);border-radius:14px;padding:16px;text-align:left;color:white;display:block;width:100%}
+.sharebig h3{margin:0 0 6px;font-size:17px}
+.sharebig p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.joinrow{display:flex;gap:9px;margin-top:12px}
+.joinrow input{flex:1;min-width:0;padding:12px 14px;border-radius:11px;border:1px solid #42363e;background:#1b1117;color:white;font-size:16px;letter-spacing:4px;outline:none}
+.guestline{display:flex;align-items:center;gap:10px;padding:8px 0}
 #fileInput{display:none}
 </style>
 </head>
@@ -85,6 +93,7 @@ dialog input{width:100%;padding:12px;border-radius:9px;border:1px solid #63535e;
     <button class="pill" data-view="albums">◉ Albums</button>
     <button class="pill" data-view="playlists">Playlists</button>
     <button class="pill" data-view="offline">Downloads</button>
+    <button class="pill" data-view="share">🎙 Share</button>
     <button class="pill" id="driveBtn">Load Drive</button>
     <button class="pill" id="localBtn">Import music</button>
   </div>
@@ -463,6 +472,8 @@ function render(){
     main.innerHTML=`<h2>Albums <span style="color:var(--muted);font-size:14px;font-weight:600">· ${albums.length}</span></h2>
       <div class="cards">${albums.map(albumCard).join('')}</div>
       ${albums.length?'':'<p class="empty">Load your music to see albums appear here automatically.</p>'}`;
+  }else if(currentView==='share'){
+    renderShareView(main);
   }else{
     const list=getVisibleSongs();
     const playlist=playlists.find(p=>p.id===activePlaylist);
@@ -555,6 +566,11 @@ function updateNow(){
 async function playSong(id){
   const song=songs.find(s=>s.id===id);
   if(!song)return;
+  if(room.mode==='guest'){
+    if(room.hostConn&&room.hostConn.open){room.hostConn.send({t:'play-req',songId:id});toast('Song requested 🎶');}
+    else toast('Not connected to the room.');
+    return;
+  }
   currentId=id;
   if(!queue.length)queue=songs.slice();
   const index=queue.findIndex(s=>s.id===id);
@@ -577,12 +593,14 @@ async function playSong(id){
 }
 
 function togglePlayback(){
+  if(room.mode==='guest'){guestCtl('toggle');return;}
   if(!currentSong()){toast('Choose a song first.');return;}
   if(audio.paused)audio.play().then(updateNow).catch(()=>toast('Playback failed.'));
   else{audio.pause();updateNow();}
 }
 
 function nextSong(direction=1){
+  if(room.mode==='guest'){guestCtl(direction<0?'prev':'next');return;}
   if(!queue.length)queue=songs.slice();
   if(!queue.length)return;
   if(shuffle&&queue.length>1){
@@ -683,6 +701,364 @@ function deleteUser(id){
   toast('User deleted');
 }
 
+/* ───────────── Listen-together rooms (share music live) ───────────── */
+const room={mode:null,code:null,peer:null,conns:[],hostConn:null,guests:new Map(),guestList:[],hostName:'',tickTimer:null,pendingPlay:null,playingId:null,lastPos:0};
+const fileIncoming=new Map();
+
+let peerLibPromise=null;
+function ensurePeer(){
+  if(window.Peer)return Promise.resolve();
+  if(!peerLibPromise){
+    peerLibPromise=new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+      s.onload=resolve;
+      s.onerror=()=>{peerLibPromise=null;reject(new Error('peerjs-load-failed'));};
+      document.head.appendChild(s);
+    });
+  }
+  return peerLibPromise;
+}
+
+function genRoomCode(){
+  const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';
+  for(let i=0;i<5;i++)c+=A[Math.floor(Math.random()*A.length)];
+  return c;
+}
+
+function roomBroadcast(msg){room.conns.forEach(c=>{try{if(c.open)c.send(msg);}catch(e){}});}
+
+function guestCtl(action){
+  if(room.mode==='guest'&&room.hostConn&&room.hostConn.open){room.hostConn.send({t:'ctl',a:action});return true;}
+  return false;
+}
+
+function hostUserName(){
+  const u=users.find(x=>x.id===currentUserId);
+  return u?u.name:'Host';
+}
+
+function sharedMeta(s){
+  return {id:s.id,title:s.title,artist:s.artist,album:s.album||'',artwork:s.artwork||null,url:(s.url&&!s.file)?s.url:null,sourceType:s.sourceType||'drive',needsFile:!!(s.file||s.blob)};
+}
+
+function sendRoomState(conn){
+  conn.send({t:'state',songs:songs.map(sharedMeta),guests:[...room.guests.values()],code:room.code,host:hostUserName()});
+}
+
+function updateRoomChip(){
+  const p=document.querySelector('header p');
+  if(!p)return;
+  if(!room.mode){p.textContent='Your music, wherever you go.';return;}
+  if(room.mode==='host')p.textContent='🎙 Room '+room.code+' · '+room.conns.length+' listener'+(room.conns.length===1?'':'s');
+  else p.textContent='🎙 In room '+room.code+' · listening together';
+}
+
+function initialOf(name){return escapeHTML(([...String(name||'?')][0]||'?').toUpperCase());}
+
+async function createRoom(tries){
+  tries=tries||0;
+  if(room.mode){toast('Leave the current room first.');return;}
+  try{await ensurePeer();}catch(e){toast('Could not start sharing. Check internet.');return;}
+  let peer;
+  try{peer=new Peer('mprsh-'+genRoomCode().toLowerCase());}
+  catch(e){toast('Sharing is not supported in this browser.');return;}
+  toast('Creating room…');
+  peer.on('open',()=>{
+    room.mode='host';
+    room.code=peer.id.replace('mprsh-','').toUpperCase();
+    room.peer=peer;room.conns=[];room.guests=new Map();room.guestList=[];
+    clearInterval(room.tickTimer);
+    room.tickTimer=setInterval(()=>{
+      const s=currentSong();
+      roomBroadcast({t:'tick',songId:s?s.id:null,pos:audio.currentTime||0,playing:!audio.paused});
+    },3000);
+    updateRoomChip();
+    if(currentView==='share')render();
+    toast('Room created! Code: '+room.code);
+  });
+  peer.on('connection',conn=>{
+    conn.on('open',()=>{
+      conn.send({t:'welcome',code:room.code,host:hostUserName()});
+      sendRoomState(conn);
+      const s=currentSong();
+      if(s)conn.send({t:'play',songId:s.id,pos:audio.currentTime||0,playing:!audio.paused});
+    });
+    conn.on('data',d=>hostOnData(conn,d));
+    conn.on('close',()=>hostGuestLeft(conn));
+    conn.on('error',()=>hostGuestLeft(conn));
+    room.conns.push(conn);
+  });
+  peer.on('disconnected',()=>{try{peer.reconnect();}catch(e){}});
+  peer.on('error',err=>{
+    if(err&&err.type==='unavailable-id'&&tries<3){createRoom(tries+1);return;}
+    if(err&&err.type!=='peer-unavailable')toast('Room error: '+(err.type||'unknown'));
+  });
+}
+
+function hostOnData(conn,d){
+  if(!d||typeof d!=='object')return;
+  if(d.t==='hello'){
+    const name=String(d.name||'Guest').slice(0,20);
+    room.guests.set(conn.peer,name);
+    roomBroadcast({t:'guests',list:[...room.guests.values()]});
+    updateRoomChip();
+    if(currentView==='share')render();
+    toast(name+' joined the room 🎉');
+  }else if(d.t==='play-req'){
+    playSong(d.songId);
+  }else if(d.t==='ctl'){
+    if(d.a==='toggle')togglePlayback();
+    else if(d.a==='next')nextSong(1);
+    else if(d.a==='prev')nextSong(-1);
+  }else if(d.t==='seek'){
+    if(Number.isFinite(d.pos)){audio.currentTime=d.pos;roomBroadcast({t:'seek',pos:d.pos});}
+  }else if(d.t==='need-file'){
+    const song=songs.find(s=>s.id===d.songId);
+    if(song)sendFileTo(conn,song);
+    else conn.send({t:'note',m:'That song is no longer available.'});
+  }
+}
+
+function hostGuestLeft(conn){
+  const known=room.conns.includes(conn);
+  room.conns=room.conns.filter(c=>c!==conn);
+  const name=room.guests.get(conn.peer);
+  room.guests.delete(conn.peer);
+  if(known){
+    roomBroadcast({t:'guests',list:[...room.guests.values()]});
+    if(name)toast(name+' left the room');
+    updateRoomChip();
+    if(currentView==='share')render();
+  }
+}
+
+async function joinRoom(codeRaw){
+  const code=String(codeRaw||'').trim().toUpperCase();
+  if(room.mode){toast('Leave the current room first.');return;}
+  if(code.length<4){toast('Enter a valid room code.');return;}
+  try{await ensurePeer();}catch(e){toast('Could not start sharing. Check internet.');return;}
+  let name=localStorage.getItem('mymusic-nickname')||'';
+  if(!name){
+    name=prompt('Your name in the room:','Guest')||'Guest';
+  }
+  name=String(name).slice(0,20);
+  localStorage.setItem('mymusic-nickname',name);
+  let peer;
+  try{peer=new Peer();}catch(e){toast('Sharing is not supported in this browser.');return;}
+  toast('Joining room '+code+'…');
+  room.mode='guest';room.code=code;room.peer=peer;
+  let opened=false;
+  peer.on('open',()=>{
+    const conn=peer.connect('mprsh-'+code.toLowerCase(),{reliable:true});
+    room.hostConn=conn;
+    conn.on('open',()=>{
+      opened=true;
+      conn.send({t:'hello',name});
+      updateRoomChip();
+      if(currentView==='share')render();
+      toast('Joined room '+code+' 🎉');
+    });
+    conn.on('data',d=>guestOnData(d));
+    conn.on('close',()=>{if(room.mode==='guest'){toast('The host closed the room.');leaveRoom(true);}});
+    setTimeout(()=>{if(!opened&&room.mode==='guest'){toast('Could not reach room '+code+'. Check the code.');leaveRoom(true);}},12000);
+  });
+  peer.on('disconnected',()=>{try{peer.reconnect();}catch(e){}});
+  peer.on('error',err=>{
+    if(err&&err.type==='peer-unavailable')toast('Room '+code+' not found.');
+    else if(err&&err.type!=='unload')toast('Room error: '+(err.type||'unknown'));
+    if(room.mode==='guest')leaveRoom(true);
+  });
+}
+
+function guestOnData(d){
+  if(!d||typeof d!=='object')return;
+  if(d.t==='welcome'){room.hostName=d.host||'Host';if(currentView==='share')render();return;}
+  if(d.t==='state'){room.hostName=d.host||room.hostName;mergeSharedSongs(d.songs||[]);room.guestList=d.guests||[];render();return;}
+  if(d.t==='guests'){room.guestList=d.list||[];if(currentView==='share')render();return;}
+  if(d.t==='play'){guestPlay(d);return;}
+  if(d.t==='pause'){
+    room.lastPos=d.pos||0;
+    if(!audio.paused)audio.pause();
+    if(Number.isFinite(d.pos)){try{audio.currentTime=d.pos;}catch(e){}}
+    updateNow();return;
+  }
+  if(d.t==='seek'){if(Number.isFinite(d.pos)){try{audio.currentTime=d.pos;}catch(e){}}return;}
+  if(d.t==='tick'){guestTick(d);return;}
+  if(d.t==='fstart'){guestFileStart(d);return;}
+  if(d.t==='fchunk'){guestFileChunk(d);return;}
+  if(d.t==='fend'){guestFileEnd(d);return;}
+  if(d.t==='note'){toast(d.m||'Host: update received');return;}
+  if(d.t==='room-end'){toast('The host ended the room.');leaveRoom(true);return;}
+}
+
+function mergeSharedSongs(list){
+  list.forEach(m=>{
+    if(!m||!m.id)return;
+    const ex=songs.find(s=>s.id===m.id);
+    if(ex){
+      ex.title=m.title||ex.title;
+      ex.artist=m.artist||ex.artist;
+      ex.album=m.album||'';
+      if(m.artwork)ex.artwork=m.artwork;
+      if(m.url&&!(ex.file||ex.blob))ex.url=m.url;
+      ex.needsFile=!!m.needsFile&&!(ex.file||ex.blob);
+      ex.shared=true;
+    }else{
+      songs.push({...m,shared:true,needsFile:!!m.needsFile});
+    }
+  });
+}
+
+function guestPlay(d){
+  const song=songs.find(s=>s.id===d.songId);
+  if(!song)return;
+  room.lastPos=d.pos||0;
+  currentId=song.id;
+  const shouldPlay=d.playing!==false;
+  if(song.needsFile&&!(song.file||song.blob)){
+    room.pendingPlay=song.id;
+    if(room.hostConn&&room.hostConn.open)room.hostConn.send({t:'need-file',songId:song.id});
+    updateNow();
+    toast('Receiving "'+song.title+'"…');
+    return;
+  }
+  if(room.playingId===song.id&&audio.src){
+    if(Number.isFinite(d.pos)){try{audio.currentTime=d.pos;}catch(e){}}
+    if(shouldPlay)audio.play().catch(()=>toast('Tap ⏵ once to join the music'));
+    else audio.pause();
+    updateNow();return;
+  }
+  let src=song.url;
+  if(song.file)src=URL.createObjectURL(song.file);
+  else if(song.blob)src=URL.createObjectURL(song.blob);
+  if(!src){toast('No audio source for this song yet.');return;}
+  room.playingId=song.id;
+  audio.src=src;
+  const onMeta=()=>{try{audio.currentTime=d.pos||0;}catch(e){}audio.removeEventListener('loadedmetadata',onMeta);};
+  audio.addEventListener('loadedmetadata',onMeta);
+  if(shouldPlay)audio.play().catch(()=>toast('Tap ⏵ once to join the music'));
+  updateNow();
+}
+
+function guestTick(d){
+  room.lastPos=d.pos||0;
+  if(d.songId){
+    const s=currentSong();
+    if(!s||s.id!==d.songId){if(d.playing)guestPlay(d);return;}
+  }
+  if(d.playing&&audio.paused)audio.play().catch(()=>{});
+  if(!d.playing&&!audio.paused)audio.pause();
+  if(d.playing&&audio.src&&Number.isFinite(d.pos)&&Math.abs(audio.currentTime-d.pos)>1.5){try{audio.currentTime=d.pos;}catch(e){}}
+}
+
+function bufToB64(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+function b64ToU8(b){const s=atob(b);const u8=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u8[i]=s.charCodeAt(i);return u8;}
+
+async function sendFileTo(conn,song){
+  const blob=(song.file instanceof File)?song.file:(song.blob||null);
+  if(!blob){conn.send({t:'note',m:'No file available for '+song.title});return;}
+  if(blob.size>25*1024*1024){conn.send({t:'note',m:'"'+song.title+'" is too large to send (25MB limit).'});return;}
+  try{
+    conn.send({t:'fstart',id:song.id,title:song.title,artist:song.artist,album:song.album||'',artwork:song.artwork||null,size:blob.size});
+    const CH=60000;let seq=0;
+    for(let off=0;off<blob.size;off+=CH){
+      const u8=new Uint8Array(await blob.slice(off,off+CH).arrayBuffer());
+      conn.send({t:'fchunk',id:song.id,seq:seq++,data:bufToB64(u8)});
+      if(seq%8===0)await new Promise(r=>setTimeout(r));
+    }
+    conn.send({t:'fend',id:song.id});
+  }catch(e){conn.send({t:'note',m:'Failed to send '+song.title});}
+}
+
+function guestFileStart(d){
+  fileIncoming.set(d.id,{meta:d,parts:[],size:d.size||0,got:0});
+  toast('Receiving "'+d.title+'"…');
+}
+function guestFileChunk(d){
+  const f=fileIncoming.get(d.id);if(!f)return;
+  const u8=b64ToU8(d.data);
+  f.parts.push(u8);f.got+=u8.length;
+  if(f.size&&f.got>f.size*1.4)fileIncoming.delete(d.id);
+}
+function guestFileEnd(d){
+  const f=fileIncoming.get(d.id);if(!f)return;
+  fileIncoming.delete(d.id);
+  const blob=new Blob(f.parts,{type:'audio/mpeg'});
+  const song=songs.find(s=>s.id===d.id);
+  if(song){song.blob=blob;song.needsFile=false;}
+  toast('Received "'+(f.meta.title||'audio')+'" ✓');
+  if(room.pendingPlay===d.id){
+    room.pendingPlay=null;
+    if(song)guestPlay({songId:d.id,pos:room.lastPos,playing:true});
+  }
+}
+
+function leaveRoom(silent){
+  const was=room.mode;
+  try{if(was==='host')roomBroadcast({t:'room-end'});}catch(e){}
+  room.conns.forEach(c=>{try{c.close();}catch(e){}});
+  try{if(room.peer)room.peer.destroy();}catch(e){}
+  clearInterval(room.tickTimer);
+  room.mode=null;room.code=null;room.peer=null;room.conns=[];room.hostConn=null;
+  room.guests=new Map();room.guestList=[];room.hostName='';room.pendingPlay=null;room.playingId=null;
+  songs=songs.filter(s=>!(s.shared&&s.needsFile&&!(s.blob||s.file)));
+  updateRoomChip();
+  render();
+  if(!silent)toast(was?'Left the room':'');
+}
+
+async function inviteShare(){
+  const isHttp=location.protocol==='http:'||location.protocol==='https:';
+  const link=isHttp?location.origin+location.pathname+'?room='+room.code:'';
+  const text='🎵 Join my Music By Prashes room!\nRoom code: '+room.code+(link?'\n'+link:'\nOpen the app, tap 🎙 Share → Join, and enter the code.');
+  if(navigator.share){try{await navigator.share({title:'Music By Prashes room',text});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  try{await navigator.clipboard.writeText(text);toast('Invite copied — paste it to friends!');}
+  catch(e){toast('Room code: '+room.code);}
+}
+
+function renderShareView(main){
+  if(room.mode==='host'){
+    const names=[...room.guests.values()];
+    main.innerHTML=`<h2>Sharing live 🎙</h2>
+      <p class="empty" style="padding:4px 0 12px">Everyone who joins hears the same song at the same moment — play, pause, seek and song changes all stay in sync.</p>
+      <div class="roomcode">${escapeHTML(room.code)}</div>
+      <div class="sharegrid">
+        <button class="primary" id="inviteBtn" style="padding:13px;border-radius:12px;font-size:15px">📨 Share invite</button>
+        <button class="secondary" id="copyCodeBtn" style="padding:13px;border-radius:12px">Copy room code</button>
+      </div>
+      <h2>In this room <span style="color:var(--muted);font-size:14px;font-weight:600">· ${names.length}</span></h2>
+      ${names.length?names.map(n=>`<div class="guestline"><span class="avatar" style="background:${avatarColor(n)}">${initialOf(n)}</span><div class="details"><strong>${escapeHTML(n)}</strong><small>Listening now</small></div></div>`).join(''):'<p class="empty">No one has joined yet — share the code with friends 👆</p>'}
+      <div style="height:16px"></div>
+      <button class="secondary" id="leaveRoomBtn" style="width:100%;padding:13px;border-radius:12px">Leave room (ends sharing)</button>`;
+    $('inviteBtn').onclick=inviteShare;
+    $('copyCodeBtn').onclick=async()=>{try{await navigator.clipboard.writeText(room.code);toast('Code copied');}catch(e){toast('Code: '+room.code);}};
+    $('leaveRoomBtn').onclick=()=>leaveRoom();
+  }else if(room.mode==='guest'){
+    const names=room.guestList||[];
+    const host=room.hostName||'Host';
+    main.innerHTML=`<h2>Listening together 🎧</h2>
+      <p class="empty" style="padding:4px 0 12px">You're in room <strong style="color:var(--accent)">${escapeHTML(room.code)}</strong>. The host controls the music — tap any song to request it, or use the player buttons.</p>
+      <h2>Listeners <span style="color:var(--muted);font-size:14px;font-weight:600">· ${names.length+1}</span></h2>
+      <div class="guestline"><span class="avatar" style="background:${avatarColor(host)}">${initialOf(host)}</span><div class="details"><strong>${escapeHTML(host)}</strong><small>Host · controls the music</small></div></div>
+      ${names.map(n=>`<div class="guestline"><span class="avatar" style="background:${avatarColor(n)}">${initialOf(n)}</span><div class="details"><strong>${escapeHTML(n)}</strong><small>Listening</small></div></div>`).join('')}
+      <div style="height:16px"></div>
+      <button class="secondary" id="leaveRoomBtn" style="width:100%;padding:13px;border-radius:12px">Leave room</button>`;
+    $('leaveRoomBtn').onclick=()=>leaveRoom();
+  }else{
+    main.innerHTML=`<h2>Share music 🎙</h2>
+      <p class="empty" style="padding:4px 0 12px">Create a room and friends hear the same song at the same moment — listen together even when you're far apart.</p>
+      <div class="sharegrid">
+        <button class="sharebig" id="createRoomBtn"><h3>🎵 Create a room</h3><p>You control the music. Friends join with a 5-letter code and listen along live.</p></button>
+        <div class="sharebig"><h3>🔗 Join a room</h3><p>Got a code from a friend? Enter it and the party starts here.</p>
+          <form id="joinForm" class="joinrow"><input id="joinCode" placeholder="CODE" maxlength="5" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"><button type="submit" class="primary" style="border-radius:11px;padding:0 18px">Join</button></form>
+        </div>
+      </div>`;
+    $('createRoomBtn').onclick=()=>createRoom();
+    $('joinForm').addEventListener('submit',e=>{e.preventDefault();joinRoom($('joinCode').value);});
+  }
+}
+
 function songOptions(id){
   const song=songs.find(s=>s.id===id);
   if(!song)return;
@@ -701,6 +1077,7 @@ async function downloadSong(id){
     toast('Downloading audio…');
     let blob;
     if(song.file instanceof File)blob=song.file;
+    else if(song.blob)blob=song.blob;
     else{
       const response=await fetch(song.url);
       if(!response.ok)throw new Error('Download failed');
@@ -780,6 +1157,7 @@ async function loadDrive(){
     });
     applyAlbums();
     queue=songs.slice();
+    if(room.mode==='host')room.conns.forEach(sendRoomState);
     render();
     toast('Loaded '+audioFiles.length+' audio files');
   }catch(error){
@@ -807,11 +1185,12 @@ function importFiles(files){
   }
   applyAlbums();
   queue=songs.slice();
+  if(room.mode==='host')room.conns.forEach(sendRoomState);
   render();
   toast('Imported '+count+' audio file(s)');
 }
 
- $('playlistForm').addEventListener('submit',event=>{
+$('playlistForm').addEventListener('submit',event=>{
   event.preventDefault();
   const name=$('playlistName').value.trim();
   if(!name)return;
@@ -829,20 +1208,20 @@ function importFiles(files){
   toast(editing?'Playlist renamed':'Playlist created');
 });
 
- $('cancelDialog').onclick=()=>$('playlistDialog').close();
- $('closeAdd').onclick=()=>$('addDialog').close();
- $('fileInput').addEventListener('change',e=>{
+$('cancelDialog').onclick=()=>$('playlistDialog').close();
+$('closeAdd').onclick=()=>$('addDialog').close();
+$('fileInput').addEventListener('change',e=>{
   importFiles([...e.target.files]);
   e.target.value='';
 });
- $('localBtn').onclick=()=>$('fileInput').click();
- $('driveBtn').onclick=loadDrive;
+$('localBtn').onclick=()=>$('fileInput').click();
+$('driveBtn').onclick=loadDrive;
 
- $('userBtn').onclick=()=>{renderUserDialog();$('userDialog').showModal();};
- $('closeUser').onclick=()=>$('userDialog').close();
- $('addUserBtn').onclick=()=>$('userCreateDialog').showModal();
- $('cancelUserCreate').onclick=()=>$('userCreateDialog').close();
- $('userCreateForm').addEventListener('submit',event=>{
+$('userBtn').onclick=()=>{renderUserDialog();$('userDialog').showModal();};
+$('closeUser').onclick=()=>$('userDialog').close();
+$('addUserBtn').onclick=()=>$('userCreateDialog').showModal();
+$('cancelUserCreate').onclick=()=>$('userCreateDialog').close();
+$('userCreateForm').addEventListener('submit',event=>{
   event.preventDefault();
   const name=$('userName').value.trim();
   if(!name)return;
@@ -858,7 +1237,7 @@ function importFiles(files){
   switchUser(u.id);
 });
 
- $('search').addEventListener('input',()=>{
+$('search').addEventListener('input',()=>{
   if($('search').value.trim())setView('search');
   else render();
 });
@@ -868,40 +1247,43 @@ document.querySelector('.navSearch').onclick=()=>{
   $('search').focus();
 };
 
- $('miniDetails').onclick=()=>{$('now').style.display='block';updateNow();};
- $('miniCover').onclick=()=>{$('now').style.display='block';updateNow();};
- $('miniLike').onclick=()=>{if(currentId)toggleLike(currentId);};
- $('miniPlay').onclick=togglePlayback;
- $('closeNow').onclick=()=>$('now').style.display='none';
- $('nowLike').onclick=()=>{if(currentId)toggleLike(currentId);};
- $('bigPlay').onclick=togglePlayback;
- $('prevBtn').onclick=()=>nextSong(-1);
- $('nextBtn').onclick=()=>nextSong(1);
+$('miniDetails').onclick=()=>{$('now').style.display='block';updateNow();};
+$('miniCover').onclick=()=>{$('now').style.display='block';updateNow();};
+$('miniLike').onclick=()=>{if(currentId)toggleLike(currentId);};
+$('miniPlay').onclick=togglePlayback;
+$('closeNow').onclick=()=>$('now').style.display='none';
+$('nowLike').onclick=()=>{if(currentId)toggleLike(currentId);};
+$('bigPlay').onclick=togglePlayback;
+$('prevBtn').onclick=()=>nextSong(-1);
+$('nextBtn').onclick=()=>nextSong(1);
 
- $('shuffleBtn').onclick=()=>{
+$('shuffleBtn').onclick=()=>{
   shuffle=!shuffle;
   $('shuffleBtn').classList.toggle('liked',shuffle);
   toast(shuffle?'Shuffle on':'Shuffle off');
 };
 
- $('repeatBtn').onclick=()=>{
+$('repeatBtn').onclick=()=>{
   repeat=!repeat;
   audio.loop=repeat;
   $('repeatBtn').classList.toggle('liked',repeat);
   toast(repeat?'Repeat one on':'Repeat off');
 };
 
- $('downloadBtn').onclick=()=>currentId&&downloadSong(currentId);
- $('nowMore').onclick=()=>currentId&&songOptions(currentId);
+$('downloadBtn').onclick=()=>currentId&&downloadSong(currentId);
+$('nowMore').onclick=()=>currentId&&songOptions(currentId);
 
- $('queueBtn').onclick=()=>{
+$('queueBtn').onclick=()=>{
   const upcoming=queue.slice(Math.max(0,queueIndex));
   alert('Queue\n\n'+(upcoming.map((s,i)=>(i+1)+'. '+s.title).join('\n')||'No songs in queue'));
 };
 
- $('progress').addEventListener('input',()=>{
+$('progress').addEventListener('input',()=>{
   if(Number.isFinite(audio.duration)&&audio.duration>0){
-    audio.currentTime=(Number($('progress').value)/1000)*audio.duration;
+    const t=(Number($('progress').value)/1000)*audio.duration;
+    if(room.mode==='guest'){if(room.hostConn&&room.hostConn.open)room.hostConn.send({t:'seek',pos:t});return;}
+    audio.currentTime=t;
+    if(room.mode==='host')roomBroadcast({t:'seek',pos:t});
   }
 });
 
@@ -913,9 +1295,9 @@ audio.addEventListener('timeupdate',()=>{
   $('duration').textContent=formatTime(audio.duration);
 });
 audio.addEventListener('loadedmetadata',()=>{$('duration').textContent=formatTime(audio.duration);});
-audio.addEventListener('play',updateNow);
-audio.addEventListener('pause',updateNow);
-audio.addEventListener('ended',()=>{if(!repeat)nextSong(1);});
+audio.addEventListener('play',()=>{updateNow();if(room.mode==='host')roomBroadcast({t:'play',songId:currentId,pos:audio.currentTime||0,playing:true});});
+audio.addEventListener('pause',()=>{updateNow();if(room.mode==='host')roomBroadcast({t:'pause',pos:audio.currentTime||0});});
+audio.addEventListener('ended',()=>{if(room.mode!=='guest'&&!repeat)nextSong(1);});
 audio.addEventListener('error',()=>{
   if(currentSong())toast('Unable to play audio. Check internet or file access.');
 });
@@ -944,6 +1326,11 @@ function setupMediaSession(){
   queue=songs.slice();
   render();
   updateUserBtn();
+  const roomParam=(location.search.match(/[?&]room=([A-Za-z0-9]+)/)||[])[1];
+  if(roomParam){
+    setView('share');
+    setTimeout(()=>{if($('joinCode'))$('joinCode').value=roomParam.toUpperCase();joinRoom(roomParam.toUpperCase());},600);
+  }
 })();
 </script>
 </body>
