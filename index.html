@@ -593,7 +593,11 @@ async function playSong(id){
 }
 
 function togglePlayback(){
-  if(room.mode==='guest'){guestCtl('toggle');return;}
+  if(room.mode==='guest'){
+    if(!audio.paused){guestCtl('toggle');return;}
+    if(room.hostPlaying){audio.play().then(updateNow).catch(()=>guestCtl('toggle'));return;}
+    guestCtl('toggle');return;
+  }
   if(!currentSong()){toast('Choose a song first.');return;}
   if(audio.paused)audio.play().then(updateNow).catch(()=>toast('Playback failed.'));
   else{audio.pause();updateNow();}
@@ -702,22 +706,40 @@ function deleteUser(id){
 }
 
 /* ───────────── Listen-together rooms (share music live) ───────────── */
-const room={mode:null,code:null,peer:null,conns:[],hostConn:null,guests:new Map(),guestList:[],hostName:'',tickTimer:null,pendingPlay:null,playingId:null,lastPos:0};
+const room={mode:null,code:null,peer:null,conns:[],hostConn:null,guests:new Map(),guestList:[],hostName:'',tickTimer:null,pendingPlay:null,playingId:null,lastPos:0,connecting:false,connectMsg:'',retries:0,leaving:false,hostPlaying:false,hintShown:false};
 const fileIncoming=new Map();
 
 let peerLibPromise=null;
+const PEER_OPTS={
+  config:{
+    iceServers:[
+      {urls:'stun:stun.l.google.com:19302'},
+      {urls:'stun:global.stun.twilio.com:3478'},
+      {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443'],username:'openrelayproject',credential:'openrelayproject'},
+      {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+    ]
+  }
+};
 function ensurePeer(){
   if(window.Peer)return Promise.resolve();
   if(!peerLibPromise){
-    peerLibPromise=new Promise((resolve,reject)=>{
+    const cdns=['https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];
+    peerLibPromise=cdns.reduce((chain,url)=>chain.catch(()=>new Promise((resolve,reject)=>{
       const s=document.createElement('script');
-      s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+      s.src=url;
       s.onload=resolve;
-      s.onerror=()=>{peerLibPromise=null;reject(new Error('peerjs-load-failed'));};
+      s.onerror=()=>reject(new Error('cdn-fail'));
       document.head.appendChild(s);
-    });
+    })),Promise.reject());
+    peerLibPromise.catch(()=>{peerLibPromise=null;});
   }
   return peerLibPromise;
+}
+
+function roomStatus(msg){
+  room.connectMsg=msg;
+  const el=document.getElementById('roomStatus');
+  if(el)el.textContent='⏳ '+msg;
 }
 
 function genRoomCode(){
@@ -756,18 +778,32 @@ function updateRoomChip(){
 
 function initialOf(name){return escapeHTML(([...String(name||'?')][0]||'?').toUpperCase());}
 
-async function createRoom(tries){
+async function createRoom(tries,preferredCode){
   tries=tries||0;
   if(room.mode){toast('Leave the current room first.');return;}
-  try{await ensurePeer();}catch(e){toast('Could not start sharing. Check internet.');return;}
+  try{await ensurePeer();}catch(e){toast('Could not load sharing. Check internet.');return;}
   let peer;
-  try{peer=new Peer('mprsh-'+genRoomCode().toLowerCase());}
+  try{peer=new Peer('mprsh-'+(preferredCode||genRoomCode()).toLowerCase(),PEER_OPTS);}
   catch(e){toast('Sharing is not supported in this browser.');return;}
-  toast('Creating room…');
+  room.connecting=true;room.peer=peer;
+  roomStatus('Contacting room server…');
+  if(currentView==='share')render();
+  const timeout=setTimeout(()=>{
+    if(room.connecting){
+      room.connecting=false;
+      try{peer.destroy();}catch(e){}
+      room.peer=null;
+      if(currentView==='share')render();
+      toast('Could not create room. The sharing server may be busy — try again.');
+    }
+  },20000);
   peer.on('open',()=>{
+    clearTimeout(timeout);
+    room.connecting=false;
     room.mode='host';
     room.code=peer.id.replace('mprsh-','').toUpperCase();
-    room.peer=peer;room.conns=[];room.guests=new Map();room.guestList=[];
+    room.conns=[];room.guests=new Map();room.guestList=[];
+    sessionStorage.setItem('mymusic-room-host',room.code);
     clearInterval(room.tickTimer);
     room.tickTimer=setInterval(()=>{
       const s=currentSong();
@@ -791,8 +827,20 @@ async function createRoom(tries){
   });
   peer.on('disconnected',()=>{try{peer.reconnect();}catch(e){}});
   peer.on('error',err=>{
-    if(err&&err.type==='unavailable-id'&&tries<3){createRoom(tries+1);return;}
-    if(err&&err.type!=='peer-unavailable')toast('Room error: '+(err.type||'unknown'));
+    if(err&&err.type==='unavailable-id'&&tries<3){
+      clearTimeout(timeout);
+      try{peer.destroy();}catch(e){}
+      createRoom(tries+1,tries<2?preferredCode:null);
+      return;
+    }
+    if(err&&err.type!=='peer-unavailable'){
+      clearTimeout(timeout);
+      room.connecting=false;
+      try{peer.destroy();}catch(e){}
+      room.peer=null;
+      if(currentView==='share')render();
+      toast('Room error: '+(err.type||'unknown'));
+    }
   });
 }
 
@@ -837,7 +885,7 @@ async function joinRoom(codeRaw){
   const code=String(codeRaw||'').trim().toUpperCase();
   if(room.mode){toast('Leave the current room first.');return;}
   if(code.length<4){toast('Enter a valid room code.');return;}
-  try{await ensurePeer();}catch(e){toast('Could not start sharing. Check internet.');return;}
+  try{await ensurePeer();}catch(e){toast('Could not load sharing. Check internet.');return;}
   let name=localStorage.getItem('mymusic-nickname')||'';
   if(!name){
     name=prompt('Your name in the room:','Guest')||'Guest';
@@ -845,29 +893,58 @@ async function joinRoom(codeRaw){
   name=String(name).slice(0,20);
   localStorage.setItem('mymusic-nickname',name);
   let peer;
-  try{peer=new Peer();}catch(e){toast('Sharing is not supported in this browser.');return;}
-  toast('Joining room '+code+'…');
-  room.mode='guest';room.code=code;room.peer=peer;
-  let opened=false;
+  try{peer=new Peer(PEER_OPTS);}catch(e){toast('Sharing is not supported in this browser.');return;}
+  room.connecting=true;room.mode='guest';room.code=code;room.peer=peer;
+  roomStatus('Contacting room server…');
+  if(currentView==='share')render();
+  let conn=null,opened=false;
+  const giveUp=msg=>{
+    if(room.mode!=='guest'||room.code!==code)return;
+    toast(msg);
+    leaveRoom(true);
+  };
+  const serverTimeout=setTimeout(()=>{
+    if(!opened&&room.mode==='guest'&&room.code===code){
+      giveUp('Could not reach room '+code+'. Keep the host\u2019s page open, check the code, and try again.');
+    }
+  },25000);
+  const statusTimer=setInterval(()=>{
+    if(room.mode!=='guest'||room.code!==code){clearInterval(statusTimer);return;}
+    if(conn&&conn.open)return;
+    roomStatus(peer.open?('Finding room '+code+'… (host\u2019s page must stay open)'):'Contacting room server…');
+  },2500);
   peer.on('open',()=>{
-    const conn=peer.connect('mprsh-'+code.toLowerCase(),{reliable:true});
+    roomStatus('Finding room '+code+'…');
+    conn=peer.connect('mprsh-'+code.toLowerCase(),{reliable:true});
     room.hostConn=conn;
     conn.on('open',()=>{
-      opened=true;
+      opened=true;clearTimeout(serverTimeout);clearInterval(statusTimer);
+      room.connecting=false;room.retries=0;
+      sessionStorage.setItem('mymusic-room-guest',code);
       conn.send({t:'hello',name});
       updateRoomChip();
       if(currentView==='share')render();
       toast('Joined room '+code+' 🎉');
     });
     conn.on('data',d=>guestOnData(d));
-    conn.on('close',()=>{if(room.mode==='guest'){toast('The host closed the room.');leaveRoom(true);}});
-    setTimeout(()=>{if(!opened&&room.mode==='guest'){toast('Could not reach room '+code+'. Check the code.');leaveRoom(true);}},12000);
+    conn.on('close',()=>{
+      clearTimeout(serverTimeout);clearInterval(statusTimer);
+      if(room.mode!=='guest'||room.leaving)return;
+      if((room.retries||0)<2){
+        room.retries=(room.retries||0)+1;
+        toast('Connection dropped — rejoining room '+code+'… ('+room.retries+'/2)');
+        setTimeout(()=>{if(room.mode==='guest'&&room.code===code){leaveRoom(true);joinRoom(code);}},3000);
+      }else{
+        toast('Lost connection to the room.');
+        leaveRoom(true);
+      }
+    });
   });
   peer.on('disconnected',()=>{try{peer.reconnect();}catch(e){}});
   peer.on('error',err=>{
-    if(err&&err.type==='peer-unavailable')toast('Room '+code+' not found.');
-    else if(err&&err.type!=='unload')toast('Room error: '+(err.type||'unknown'));
-    if(room.mode==='guest')leaveRoom(true);
+    clearTimeout(serverTimeout);clearInterval(statusTimer);
+    if(err&&err.type==='peer-unavailable')giveUp('Room '+code+' not found. Is the host\u2019s page still open?');
+    else if(err&&err.type!=='unload')giveUp('Room error: '+(err.type||'unknown'));
   });
 }
 
@@ -876,8 +953,9 @@ function guestOnData(d){
   if(d.t==='welcome'){room.hostName=d.host||'Host';if(currentView==='share')render();return;}
   if(d.t==='state'){room.hostName=d.host||room.hostName;mergeSharedSongs(d.songs||[]);room.guestList=d.guests||[];render();return;}
   if(d.t==='guests'){room.guestList=d.list||[];if(currentView==='share')render();return;}
-  if(d.t==='play'){guestPlay(d);return;}
+  if(d.t==='play'){room.hostPlaying=true;guestPlay(d);return;}
   if(d.t==='pause'){
+    room.hostPlaying=false;
     room.lastPos=d.pos||0;
     if(!audio.paused)audio.pause();
     if(Number.isFinite(d.pos)){try{audio.currentTime=d.pos;}catch(e){}}
@@ -914,6 +992,7 @@ function guestPlay(d){
   const song=songs.find(s=>s.id===d.songId);
   if(!song)return;
   room.lastPos=d.pos||0;
+  room.hostPlaying=d.playing!==false;
   currentId=song.id;
   const shouldPlay=d.playing!==false;
   if(song.needsFile&&!(song.file||song.blob)){
@@ -943,11 +1022,14 @@ function guestPlay(d){
 
 function guestTick(d){
   room.lastPos=d.pos||0;
+  room.hostPlaying=!!d.playing;
   if(d.songId){
     const s=currentSong();
     if(!s||s.id!==d.songId){if(d.playing)guestPlay(d);return;}
   }
-  if(d.playing&&audio.paused)audio.play().catch(()=>{});
+  if(d.playing&&audio.paused){
+    audio.play().catch(()=>{if(!room.hintShown){room.hintShown=true;toast('Tap ⏵ once to join the music');}});
+  }
   if(!d.playing&&!audio.paused)audio.pause();
   if(d.playing&&audio.src&&Number.isFinite(d.pos)&&Math.abs(audio.currentTime-d.pos)>1.5){try{audio.currentTime=d.pos;}catch(e){}}
 }
@@ -996,15 +1078,20 @@ function guestFileEnd(d){
 
 function leaveRoom(silent){
   const was=room.mode;
+  room.leaving=true;
   try{if(was==='host')roomBroadcast({t:'room-end'});}catch(e){}
   room.conns.forEach(c=>{try{c.close();}catch(e){}});
   try{if(room.peer)room.peer.destroy();}catch(e){}
   clearInterval(room.tickTimer);
   room.mode=null;room.code=null;room.peer=null;room.conns=[];room.hostConn=null;
   room.guests=new Map();room.guestList=[];room.hostName='';room.pendingPlay=null;room.playingId=null;
+  room.connecting=false;room.retries=0;
+  sessionStorage.removeItem('mymusic-room-host');
+  sessionStorage.removeItem('mymusic-room-guest');
   songs=songs.filter(s=>!(s.shared&&s.needsFile&&!(s.blob||s.file)));
   updateRoomChip();
   render();
+  room.leaving=false;
   if(!silent)toast(was?'Left the room':'');
 }
 
@@ -1018,6 +1105,12 @@ async function inviteShare(){
 }
 
 function renderShareView(main){
+  if(room.connecting){
+    main.innerHTML=`<h2>Share music 🎙</h2>
+      <div class="roomcode" id="roomStatus" style="font-size:19px;letter-spacing:1px">⏳ ${escapeHTML(room.connectMsg||'Connecting…')}</div>
+      <p class="empty">Setting up the private connection — this can take a few seconds on mobile networks.</p>`;
+    return;
+  }
   if(room.mode==='host'){
     const names=[...room.guests.values()];
     main.innerHTML=`<h2>Sharing live 🎙</h2>
@@ -1330,6 +1423,16 @@ function setupMediaSession(){
   if(roomParam){
     setView('share');
     setTimeout(()=>{if($('joinCode'))$('joinCode').value=roomParam.toUpperCase();joinRoom(roomParam.toUpperCase());},600);
+  }else{
+    const hostCode=sessionStorage.getItem('mymusic-room-host');
+    const guestCode=sessionStorage.getItem('mymusic-room-guest');
+    if(hostCode){
+      setView('share');
+      setTimeout(()=>{toast('Reopening room '+hostCode+'…');createRoom(0,hostCode);},600);
+    }else if(guestCode){
+      setView('share');
+      setTimeout(()=>{toast('Rejoining room '+guestCode+'…');joinRoom(guestCode);},600);
+    }
   }
 })();
 </script>
